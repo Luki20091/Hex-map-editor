@@ -4,16 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hex Map Editor - BETA</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            overflow: hidden;
             display: flex;
+            overflow: hidden;
         }
         canvas {
             display: block;
-            background-color: #000;
+            background-color: #333333; /* Darker background */
             cursor: pointer;
         }
         #controls {
@@ -37,6 +39,9 @@
         .tile:hover {
             background: rgba(0, 0, 0, 0.1);
         }
+        .tile.selected {
+            background: rgba(0, 123, 255, 0.2);
+        }
         .tile-color {
             width: 24px;
             height: 24px;
@@ -56,14 +61,34 @@
         button:hover {
             background: #0056b3;
         }
+        .tool-button {
+            margin: 5px 0;
+            padding: 10px;
+            border: none;
+            background: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            display: block;
+            font-size: 20px;
+            text-align: center;
+        }
+        .tool-button.selected {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
     <canvas id="hexCanvas"></canvas>
     <div id="controls">
         <div id="terrainList"></div>
+        <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil-alt"></i></button>
+        <button class="tool-button" data-tool="big-pencil"><i class="fas fa-pencil-ruler"></i></button>
+        <button class="tool-button" data-tool="bucket"><i class="fas fa-tint"></i></button>
         <button id="exportButton">Export to JSON</button>
         <button id="importButton">Import from JSON</button>
+        <button id="undoButton">Undo</button>
+        <button id="redoButton">Redo</button>
         <input type="file" id="fileInput" style="display:none;">
     </div>
     <script>
@@ -73,17 +98,22 @@
         const importButton = document.getElementById("importButton");
         const fileInput = document.getElementById("fileInput");
         const terrainList = document.getElementById("terrainList");
+        const undoButton = document.getElementById("undoButton");
+        const redoButton = document.getElementById("redoButton");
 
         // Hex map parameters
         const hexRadius = 30;
         const hexHeight = Math.sqrt(3) * hexRadius;
         const hexWidth = 2 * hexRadius;
         const hexVerticalSpacing = hexHeight;
-        const cols = 20;
-        const rows = 20;
+        const cols = 25;
+        const rows = 13;
         const hexMap = [];
-        let selectedColor = "#000000";
+        let selectedColor = "#228B22";  // Green for Plains
         let isPainting = false;
+        let selectedTool = "pencil";
+        let history = [];
+        let historyIndex = -1;
 
         canvas.width = cols * hexWidth * 0.75 + hexRadius;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
@@ -122,17 +152,22 @@
             });
         });
 
+        // Set the default selected tile as the "Plains"
+        document.querySelectorAll(".tile").forEach(tile => {
+            if (tile.dataset.color === selectedColor) {
+                tile.classList.add("selected");
+            }
+        });
+
         // Initialize hex map
         for (let r = 0; r < rows; r++) {
             for (let q = 0; q < cols; q++) {
-                const xOffset = q * hexWidth * 0.75;
-                const yOffset = r * hexVerticalSpacing + (q % 2 === 0 ? 0 : hexHeight / 2);
-                hexMap.push({ q, r, s: -q - r, color: "#000000" });
+                hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });  // Lighter color for default
             }
         }
 
         // Draw hexagon
-        function drawHex(x, y, color = "#000000") {
+        function drawHex(x, y, color = "#BBBBBB") {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = Math.PI / 3 * i;
@@ -143,18 +178,48 @@
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
-            ctx.strokeStyle = "#000";
+            ctx.strokeStyle = "#333333";  // Darker stroke color
+            ctx.lineWidth = 2;
             ctx.stroke();
         }
 
         // Draw the map
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            hexMap.forEach((hex) => {
+            hexMap.forEach(hex => {
                 const x = hex.q * hexWidth * 0.75 + hexRadius;
                 const y = hex.r * hexVerticalSpacing + (hex.q % 2 === 0 ? hexHeight / 2 : 0) + hexHeight / 2;
                 drawHex(x, y, hex.color);
             });
+        }
+
+        // Save the current state of hexMap for undo/redo
+        function saveHistory() {
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);  // Remove any future actions if undo has been performed
+            }
+            history.push(JSON.parse(JSON.stringify(hexMap)));  // Deep clone
+            historyIndex++;
+        }
+
+        // Undo the last action
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                hexMap.length = 0;
+                hexMap.push(...history[historyIndex]);
+                drawMap();
+            }
+        }
+
+        // Redo the last undone action
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                hexMap.length = 0;
+                hexMap.push(...history[historyIndex]);
+                drawMap();
+            }
         }
 
         // Get hex under mouse
@@ -172,26 +237,64 @@
         }
 
         // Paint a hex
-        function paintHex(event) {
+        function paintHex(hex) {
+            saveHistory();  // Save the current state before making a change
+
+            if (selectedTool === "pencil") {
+                hex.color = selectedColor;
+            } else if (selectedTool === "big-pencil") {
+                const neighbors = [
+                    { q: hex.q, r: hex.r },
+                    { q: hex.q + 1, r: hex.r },
+                    { q: hex.q - 1, r: hex.r },
+                    { q: hex.q, r: hex.r + 1 },
+                    { q: hex.q, r: hex.r - 1 },
+                    { q: hex.q + 1, r: hex.r + 1 },
+                    { q: hex.q - 1, r: hex.r + 1 }
+                ];
+                neighbors.forEach(neighbor => {
+                    const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
+                    if (hexToPaint) {
+                        hexToPaint.color = selectedColor;
+                    }
+                });
+            } else if (selectedTool === "bucket") {
+                if (hex.color === selectedColor) return;
+                const targetColor = hex.color;
+                const queue = [hex];
+                while (queue.length) {
+                    const current = queue.pop();
+                    if (current.color === targetColor) {
+                        current.color = selectedColor;
+                        const neighbors = hexMap.filter(h => {
+                            const dx = Math.abs(h.q - current.q);
+                            const dy = Math.abs(h.r - current.r);
+                            return dx <= 1 && dy <= 1;
+                        });
+                        queue.push(...neighbors.filter(h => h.color === targetColor));
+                    }
+                }
+            }
+            drawMap();
+        }
+
+        // Mouse events
+        canvas.addEventListener("mousedown", event => {
+            isPainting = true;
             const rect = canvas.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
             const hex = getHexAt(mouseX, mouseY);
-            if (hex) {
-                hex.color = selectedColor;
-                drawMap();
-            }
-        }
-
-        // Mouse events for painting
-        canvas.addEventListener("mousedown", (event) => {
-            isPainting = true;
-            paintHex(event);
+            if (hex) paintHex(hex);
         });
 
-        canvas.addEventListener("mousemove", (event) => {
+        canvas.addEventListener("mousemove", event => {
             if (isPainting) {
-                paintHex(event);
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = event.clientX - rect.left;
+                const mouseY = event.clientY - rect.top;
+                const hex = getHexAt(mouseX, mouseY);
+                if (hex) paintHex(hex);
             }
         });
 
@@ -201,6 +304,16 @@
 
         canvas.addEventListener("mouseleave", () => {
             isPainting = false;
+        });
+
+        // Tool buttons
+        const toolButtons = document.querySelectorAll(".tool-button");
+        toolButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                selectedTool = button.dataset.tool;
+                toolButtons.forEach(btn => btn.classList.remove("selected"));
+                button.classList.add("selected");
+            });
         });
 
         // Export map to JSON
@@ -219,18 +332,20 @@
             fileInput.click();
         });
 
-        fileInput.addEventListener("change", (event) => {
+        fileInput.addEventListener("change", event => {
             const file = event.target.files[0];
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = JSON.parse(e.target.result);
-                data.forEach((importedHex, index) => {
-                    hexMap[index].color = importedHex.color;
-                });
+            reader.onload = () => {
+                const importedMap = JSON.parse(reader.result);
+                importedMap.forEach((hex, i) => hexMap[i].color = hex.color);
                 drawMap();
             };
             reader.readAsText(file);
         });
+
+        // Undo and Redo buttons
+        undoButton.addEventListener("click", undo);
+        redoButton.addEventListener("click", redo);
 
         drawMap();
     </script>
