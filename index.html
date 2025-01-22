@@ -270,16 +270,35 @@
                 if (selectedTool === "pencil") {
                     hex.color = selectedColor;
                 } else if (selectedTool === "big-pencil") {
-                    const neighbors = [
-                        { q: hex.q, r: hex.r },
-                        { q: hex.q + 1, r: hex.r },
-                        { q: hex.q - 1, r: hex.r },
-                        { q: hex.q, r: hex.r + 1 },
-                        { q: hex.q, r: hex.r - 1 },
-                        { q: hex.q + 1, r: hex.r + 1 },
-                        { q: hex.q - 1, r: hex.r + 1 }
+                    const isEvenRow = hex.r % 2 === 0;
+
+                    // Sąsiedzi dla rzędu parzystego
+                    const neighborsEvenRow = [
+                        { q: hex.q, r: hex.r },         // Środek
+                        { q: hex.q + 1, r: hex.r },     // Prawy
+                        { q: hex.q - 1, r: hex.r },     // Lewy
+                        { q: hex.q, r: hex.r - 1 },     // Górny
+                        { q: hex.q, r: hex.r + 1 },     // Dolny
+                        { q: hex.q - 1, r: hex.r - 1 }, // Górny lewy
+                        { q: hex.q - 1, r: hex.r + 1 }  // Dolny lewy
                     ];
-                    neighbors.forEach(neighbor => {
+
+                    // Sąsiedzi dla rzędu nieparzystego
+                    const neighborsOddRow = [
+                        { q: hex.q, r: hex.r },         // Środek
+                        { q: hex.q + 1, r: hex.r },     // Prawy
+                        { q: hex.q - 1, r: hex.r },     // Lewy
+                        { q: hex.q, r: hex.r - 1 },     // Górny
+                        { q: hex.q, r: hex.r + 1 },     // Dolny
+                        { q: hex.q + 1, r: hex.r - 1 }, // Górny prawy
+                        { q: hex.q + 1, r: hex.r + 1 }  // Dolny prawy
+                    ];
+
+                    // Wybierz odpowiednich sąsiadów
+                    const filledCircle = isEvenRow ? neighborsEvenRow : neighborsOddRow;
+
+                    // Iteruj przez heksy i maluj
+                    filledCircle.forEach(neighbor => {
                         const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
                         if (hexToPaint && hexToPaint.color !== selectedColor) {
                             hexToPaint.color = selectedColor;
