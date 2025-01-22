@@ -7,6 +7,7 @@
 - [x] Undo/Redo shortcuts and buttons
 - [x] Pointy-top/hexes rotation
 - [x] Save width and height in json
+- [x] Resize map form
 
 # Version Alfa:
 - [x] Draw the map
