@@ -5,6 +5,7 @@
 - [x] Tile map and basic hex types
 - [x] Pencil/Big pencil/Bucket tools
 - [x] Undo/Redo shortcuts and buttons
+- [x] Pointy-top/hexes rotation
 
 # Version Alfa:
 - [x] Draw the map
