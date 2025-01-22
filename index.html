@@ -17,6 +17,8 @@
             display: block;
             background-color: #333333;
             cursor: pointer;
+            height: min-content;
+            width: min-content;
         }
         #controls {
             background: rgba(255, 255, 255, 0.9);
@@ -76,6 +78,15 @@
         .tool-button.selected {
             background: #0056b3;
         }
+        .input-group {
+            margin: 10px 0;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -85,12 +96,25 @@
         <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil-alt"></i></button>
         <button class="tool-button" data-tool="big-pencil"><i class="fas fa-pencil-ruler"></i></button>
         <button class="tool-button" data-tool="bucket"><i class="fas fa-tint"></i></button>
+        <button id="resetButton">Reset Map</button> <!-- Nowy przycisk do resetowania mapy -->
         <button id="exportButton">Export to JSON</button>
         <button id="importButton">Import from JSON</button>
         <button id="undoButton">Undo</button>
         <button id="redoButton">Redo</button>
         <input type="file" id="fileInput" style="display:none;">
+        
+        <!-- Formularz do zmiany wymiarów mapy -->
+        <div class="input-group">
+            <label for="cols">Columns: </label>
+            <input type="number" id="cols" value="29" min="5" max="100" />
+        </div>
+        <div class="input-group">
+            <label for="rows">Rows: </label>
+            <input type="number" id="rows" value="17" min="5" max="100" />
+        </div>
+        <button id="resizeButton">Resize Map</button>
     </div>
+
     <script>
         const canvas = document.getElementById("hexCanvas");
         const ctx = canvas.getContext("2d");
@@ -100,25 +124,29 @@
         const terrainList = document.getElementById("terrainList");
         const undoButton = document.getElementById("undoButton");
         const redoButton = document.getElementById("redoButton");
+        const resetButton = document.getElementById("resetButton");
+        const resizeButton = document.getElementById("resizeButton");
+        const colsInput = document.getElementById("cols");
+        const rowsInput = document.getElementById("rows");
 
         const hexRadius = 25;
-        const hexWidth = Math.sqrt(3) * hexRadius; // Szerokość heksu
-        const hexHeight = 2 * hexRadius; // Wysokość heksu
-        const hexHorizontalSpacing = hexWidth; // Odległość pozioma między heksami
-        const hexVerticalSpacing = hexHeight * 0.75; // Odległość pionowa między heksami
+        const hexWidth = Math.sqrt(3) * hexRadius;
+        const hexHeight = 2 * hexRadius;
+        const hexHorizontalSpacing = hexWidth;
+        const hexVerticalSpacing = hexHeight * 0.75;
 
-        const cols = 29;
-        const rows = 17;
+        let cols = 29;
+        let rows = 17;
         const hexMap = [];
-        let selectedColor = "#228B22"; 
+        let selectedColor = "#228B22";
         let isPainting = false;
         let selectedTool = "pencil";
         let history = [];
         let historyIndex = -1;
 
+        // Początkowa szerokość i wysokość canvasu
         canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
-
 
         const terrains = [
             { name: "Mountains", color: "#8B4513" },
@@ -157,6 +185,18 @@
             }
         });
 
+        function resetMap() {
+            hexMap.forEach(hex => {
+                hex.color = "#BBBBBB";
+            });
+            saveHistory();
+            drawMap();
+        }
+
+        resetButton.addEventListener("click", () => {
+            resetMap();
+        });
+
         for (let r = 0; r < rows; r++) {
             for (let q = 0; q < cols; q++) {
                 hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
@@ -166,7 +206,7 @@
         function drawHex(x, y, color = "#BBBBBB") {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
-                const angle = Math.PI / 3 * i + Math.PI / 6; // Przesunięcie o 30 stopni
+                const angle = Math.PI / 3 * i + Math.PI / 6;
                 const xOffset = x + Math.cos(angle) * hexRadius;
                 const yOffset = y + Math.sin(angle) * hexRadius;
                 ctx.lineTo(xOffset, yOffset);
@@ -179,7 +219,6 @@
             ctx.stroke();
         }
 
-
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             hexMap.forEach(hex => {
@@ -189,22 +228,9 @@
             });
         }
 
-
         function saveHistory() {
-            const currentState = JSON.stringify(hexMap);
-
-            // Sprawdź, czy stan mapy różni się od poprzedniego w historii
-            if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === currentState) {
-                return; // Jeśli stan jest identyczny, nie dodawaj do historii
-            }
-
-            // Usuń stany „przyszłe” (jeśli wykonano zmianę po cofnięciu)
-            if (historyIndex < history.length - 1) {
-                history = history.slice(0, historyIndex + 1);
-            }
-
-            // Dodaj bieżący stan mapy do historii i zaktualizuj indeks
-            history.push(JSON.parse(currentState));
+            history.length = historyIndex + 1;
+            history.push(JSON.parse(JSON.stringify(hexMap)));
             historyIndex++;
         }
 
@@ -239,13 +265,11 @@
             return null;
         }
 
-
-        // Paint a hex
         function paintHex(hex) {
             if (selectedTool === "bucket") {
                 if (hex.color === selectedColor) return;
 
-                saveHistory(); // Zapisz historię przed rozpoczęciem operacji „bucket”
+                saveHistory();
 
                 const targetColor = hex.color;
                 const queue = [hex];
@@ -265,39 +289,35 @@
             } else {
                 if (hex.color === selectedColor) return;
 
-                saveHistory(); // Zapisz historię przed innymi operacjami
+                saveHistory();
 
                 if (selectedTool === "pencil") {
                     hex.color = selectedColor;
                 } else if (selectedTool === "big-pencil") {
                     const isEvenRow = hex.r % 2 === 0;
 
-                    // Sąsiedzi dla rzędu parzystego
                     const neighborsEvenRow = [
-                        { q: hex.q, r: hex.r },         // Środek
-                        { q: hex.q + 1, r: hex.r },     // Prawy
-                        { q: hex.q - 1, r: hex.r },     // Lewy
-                        { q: hex.q, r: hex.r - 1 },     // Górny
-                        { q: hex.q, r: hex.r + 1 },     // Dolny
-                        { q: hex.q - 1, r: hex.r - 1 }, // Górny lewy
-                        { q: hex.q - 1, r: hex.r + 1 }  // Dolny lewy
+                        { q: hex.q, r: hex.r },
+                        { q: hex.q + 1, r: hex.r },
+                        { q: hex.q - 1, r: hex.r },
+                        { q: hex.q, r: hex.r - 1 },
+                        { q: hex.q, r: hex.r + 1 },
+                        { q: hex.q - 1, r: hex.r - 1 },
+                        { q: hex.q - 1, r: hex.r + 1 }
                     ];
 
-                    // Sąsiedzi dla rzędu nieparzystego
                     const neighborsOddRow = [
-                        { q: hex.q, r: hex.r },         // Środek
-                        { q: hex.q + 1, r: hex.r },     // Prawy
-                        { q: hex.q - 1, r: hex.r },     // Lewy
-                        { q: hex.q, r: hex.r - 1 },     // Górny
-                        { q: hex.q, r: hex.r + 1 },     // Dolny
-                        { q: hex.q + 1, r: hex.r - 1 }, // Górny prawy
-                        { q: hex.q + 1, r: hex.r + 1 }  // Dolny prawy
+                        { q: hex.q, r: hex.r },
+                        { q: hex.q + 1, r: hex.r },
+                        { q: hex.q - 1, r: hex.r },
+                        { q: hex.q, r: hex.r - 1 },
+                        { q: hex.q, r: hex.r + 1 },
+                        { q: hex.q + 1, r: hex.r - 1 },
+                        { q: hex.q + 1, r: hex.r + 1 }
                     ];
 
-                    // Wybierz odpowiednich sąsiadów
                     const filledCircle = isEvenRow ? neighborsEvenRow : neighborsOddRow;
 
-                    // Iteruj przez heksy i maluj
                     filledCircle.forEach(neighbor => {
                         const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
                         if (hexToPaint && hexToPaint.color !== selectedColor) {
@@ -308,7 +328,6 @@
                 drawMap();
             }
         }
-
 
         canvas.addEventListener("mousedown", event => {
             isPainting = true;
@@ -342,7 +361,7 @@
         });
 
         exportButton.addEventListener("click", () => {
-            const dataStr = JSON.stringify(hexMap, null, 2);
+            const dataStr = JSON.stringify({ hexMap, cols, rows }, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -362,8 +381,16 @@
                 const reader = new FileReader();
                 reader.onload = e => {
                     const json = JSON.parse(e.target.result);
+                    // Zaktualizuj wymiary na podstawie zaimportowanych danych
+                    cols = json.cols || cols;
+                    rows = json.rows || rows;
                     hexMap.length = 0;
-                    hexMap.push(...json);
+                    hexMap.push(...json.hexMap);
+
+                    // Aktualizuj rozmiar canvasu
+                    canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
+                    canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+
                     saveHistory();
                     drawMap();
                 };
@@ -371,22 +398,41 @@
             }
         });
 
-        // Undo and Redo buttons
         undoButton.addEventListener("click", undo);
         redoButton.addEventListener("click", redo);
 
-        // Obsługa skrótów klawiszowych
         document.addEventListener("keydown", event => {
             if (event.ctrlKey && event.key === "z") {
-                // Ctrl + Z: Undo
-                event.preventDefault(); // Zapobiegaj domyślnym akcjom (np. cofaniu w polach tekstowych)
+                event.preventDefault();
                 undo();
             }
             if (event.ctrlKey && event.key === "y") {
-                // Ctrl + Y: Redo
-                event.preventDefault(); // Zapobiegaj domyślnym akcjom
+                event.preventDefault();
                 redo();
             }
+        });
+
+        // Resize map when clicking on the Resize Map button
+        resizeButton.addEventListener("click", () => {
+            cols = parseInt(colsInput.value);
+            rows = parseInt(rowsInput.value);
+
+            // Ensure that map dimensions are within the limits
+            if (rows < 5) rows = 5;
+            if (cols < 5) cols = 5;
+
+            hexMap.length = 0;
+
+            for (let r = 0; r < rows; r++) {
+                for (let q = 0; q < cols; q++) {
+                    hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
+                }
+            }
+
+            // Update canvas size
+            canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
+            canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+            drawMap();
         });
 
         saveHistory();
