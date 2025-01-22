@@ -6,6 +6,7 @@
 - [x] Pencil/Big pencil/Bucket tools
 - [x] Undo/Redo shortcuts and buttons
 - [x] Pointy-top/hexes rotation
+- [x] Save width and height in json
 
 # Version Alfa:
 - [x] Draw the map
