@@ -102,11 +102,13 @@
         const redoButton = document.getElementById("redoButton");
 
         const hexRadius = 25;
-        const hexHeight = Math.sqrt(3) * hexRadius;
-        const hexWidth = 2 * hexRadius;
-        const hexVerticalSpacing = hexHeight;
-        const cols = 34;
-        const rows = 15;
+        const hexWidth = Math.sqrt(3) * hexRadius; // Szerokość heksu
+        const hexHeight = 2 * hexRadius; // Wysokość heksu
+        const hexHorizontalSpacing = hexWidth; // Odległość pozioma między heksami
+        const hexVerticalSpacing = hexHeight * 0.75; // Odległość pionowa między heksami
+
+        const cols = 29;
+        const rows = 17;
         const hexMap = [];
         let selectedColor = "#228B22"; 
         let isPainting = false;
@@ -114,8 +116,9 @@
         let history = [];
         let historyIndex = -1;
 
-        canvas.width = cols * hexWidth * 0.75 + hexRadius;
+        canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+
 
         const terrains = [
             { name: "Mountains", color: "#8B4513" },
@@ -163,7 +166,7 @@
         function drawHex(x, y, color = "#BBBBBB") {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
-                const angle = Math.PI / 3 * i;
+                const angle = Math.PI / 3 * i + Math.PI / 6; // Przesunięcie o 30 stopni
                 const xOffset = x + Math.cos(angle) * hexRadius;
                 const yOffset = y + Math.sin(angle) * hexRadius;
                 ctx.lineTo(xOffset, yOffset);
@@ -176,14 +179,16 @@
             ctx.stroke();
         }
 
+
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             hexMap.forEach(hex => {
-                const x = hex.q * hexWidth * 0.75 + hexRadius;
-                const y = hex.r * hexVerticalSpacing + (hex.q % 2 === 0 ? hexHeight / 2 : 0) + hexHeight / 2;
+                const x = hex.q * hexHorizontalSpacing + (hex.r % 2 === 0 ? 0 : hexWidth / 2) + hexWidth / 2;
+                const y = hex.r * hexVerticalSpacing + hexHeight / 2;
                 drawHex(x, y, hex.color);
             });
         }
+
 
         function saveHistory() {
             const currentState = JSON.stringify(hexMap);
@@ -223,8 +228,8 @@
 
         function getHexAt(x, y) {
             for (const hex of hexMap) {
-                const hexX = hex.q * hexWidth * 0.75 + hexRadius;
-                const hexY = hex.r * hexVerticalSpacing + (hex.q % 2 === 0 ? hexHeight / 2 : 0) + hexHeight / 2;
+                const hexX = hex.q * hexHorizontalSpacing + (hex.r % 2 === 0 ? 0 : hexWidth / 2) + hexWidth / 2;
+                const hexY = hex.r * hexVerticalSpacing + hexHeight / 2;
                 const dx = x - hexX;
                 const dy = y - hexY;
                 if (Math.sqrt(dx * dx + dy * dy) < hexRadius) {
@@ -233,6 +238,7 @@
             }
             return null;
         }
+
 
         // Paint a hex
         function paintHex(hex) {
