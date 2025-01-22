@@ -4,7 +4,7 @@
 # Version Beta:
 - [x] Tile map and basic hex types
 - [x] Pencil/Big pencil/Bucket tools
-- [x] Undo/Redo shortcuts or buttons
+- [x] Undo/Redo shortcuts and buttons
 
 # Version Alfa:
 - [x] Draw the map
