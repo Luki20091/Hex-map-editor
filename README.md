@@ -1,5 +1,5 @@
-# Hex map edytor
-[Kliknij, aby przejść do edytora](https://luki20091.github.io/Hex-map-edytor/)
+# History of balls - Hex map editor
+[Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta:
 - [x] Tile map include basic hexes
