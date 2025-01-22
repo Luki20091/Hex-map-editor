@@ -2,7 +2,9 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta:
-- [x] Tile map include basic hexes
+- [x] Tile map and basic hex types
+- [x] Pencil/Big pencil/Bucket tools
+- [x] Undo/Redo shortcuts
 
 # Version Alfa:
 - [x] Draw the map
