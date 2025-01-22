@@ -15,7 +15,7 @@
         }
         canvas {
             display: block;
-            background-color: #333333; /* Darker background */
+            background-color: #333333;
             cursor: pointer;
         }
         #controls {
@@ -101,7 +101,6 @@
         const undoButton = document.getElementById("undoButton");
         const redoButton = document.getElementById("redoButton");
 
-        // Hex map parameters
         const hexRadius = 30;
         const hexHeight = Math.sqrt(3) * hexRadius;
         const hexWidth = 2 * hexRadius;
@@ -109,7 +108,7 @@
         const cols = 25;
         const rows = 13;
         const hexMap = [];
-        let selectedColor = "#228B22";  // Green for Plains
+        let selectedColor = "#228B22"; 
         let isPainting = false;
         let selectedTool = "pencil";
         let history = [];
@@ -118,7 +117,6 @@
         canvas.width = cols * hexWidth * 0.75 + hexRadius;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
 
-        // Terrain types
         const terrains = [
             { name: "Mountains", color: "#8B4513" },
             { name: "Water", color: "#1E90FF" },
@@ -127,7 +125,6 @@
             { name: "Forest", color: "#006400" }
         ];
 
-        // Populate terrain list
         terrains.forEach(terrain => {
             const tile = document.createElement("div");
             tile.classList.add("tile");
@@ -144,7 +141,6 @@
             tile.appendChild(label);
             terrainList.appendChild(tile);
 
-            // Set selected color on click
             tile.addEventListener("click", () => {
                 selectedColor = terrain.color;
                 document.querySelectorAll(".tile").forEach(t => t.classList.remove("selected"));
@@ -152,21 +148,18 @@
             });
         });
 
-        // Set the default selected tile as the "Plains"
         document.querySelectorAll(".tile").forEach(tile => {
             if (tile.dataset.color === selectedColor) {
                 tile.classList.add("selected");
             }
         });
 
-        // Initialize hex map
         for (let r = 0; r < rows; r++) {
             for (let q = 0; q < cols; q++) {
-                hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });  // Lighter color for default
+                hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
             }
         }
 
-        // Draw hexagon
         function drawHex(x, y, color = "#BBBBBB") {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
@@ -178,12 +171,11 @@
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
-            ctx.strokeStyle = "#333333";  // Darker stroke color
+            ctx.strokeStyle = "#333333";
             ctx.lineWidth = 2;
             ctx.stroke();
         }
 
-        // Draw the map
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             hexMap.forEach(hex => {
@@ -193,36 +185,36 @@
             });
         }
 
-        // Save the current state of hexMap for undo/redo
         function saveHistory() {
             if (historyIndex < history.length - 1) {
-                history = history.slice(0, historyIndex + 1);  // Remove any future actions if undo has been performed
+                history = history.slice(0, historyIndex + 1);
             }
-            history.push(JSON.parse(JSON.stringify(hexMap)));  // Deep clone
-            historyIndex++;
+
+            const currentState = JSON.stringify(hexMap);
+            if (history.length === 0 || JSON.stringify(history[historyIndex]) !== currentState) {
+                history.push(JSON.parse(currentState));
+                historyIndex++;
+            }
         }
 
-        // Undo the last action
         function undo() {
             if (historyIndex > 0) {
                 historyIndex--;
                 hexMap.length = 0;
-                hexMap.push(...history[historyIndex]);
+                hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
                 drawMap();
             }
         }
 
-        // Redo the last undone action
         function redo() {
             if (historyIndex < history.length - 1) {
                 historyIndex++;
                 hexMap.length = 0;
-                hexMap.push(...history[historyIndex]);
+                hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
                 drawMap();
             }
         }
 
-        // Get hex under mouse
         function getHexAt(x, y) {
             for (const hex of hexMap) {
                 const hexX = hex.q * hexWidth * 0.75 + hexRadius;
@@ -238,6 +230,7 @@
 
         // Paint a hex
         function paintHex(hex) {
+            if (hex.color === selectedColor) return; // Sprawdzenie, czy kolor już jest taki sam
             saveHistory();  // Save the current state before making a change
 
             if (selectedTool === "pencil") {
@@ -254,7 +247,7 @@
                 ];
                 neighbors.forEach(neighbor => {
                     const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
-                    if (hexToPaint) {
+                    if (hexToPaint && hexToPaint.color !== selectedColor) { // Sprawdzenie koloru sąsiadów
                         hexToPaint.color = selectedColor;
                     }
                 });
@@ -278,7 +271,7 @@
             drawMap();
         }
 
-        // Mouse events
+
         canvas.addEventListener("mousedown", event => {
             isPainting = true;
             const rect = canvas.getBoundingClientRect();
@@ -298,15 +291,9 @@
             }
         });
 
-        canvas.addEventListener("mouseup", () => {
-            isPainting = false;
-        });
+        canvas.addEventListener("mouseup", () => { isPainting = false; });
+        canvas.addEventListener("mouseleave", () => { isPainting = false; });
 
-        canvas.addEventListener("mouseleave", () => {
-            isPainting = false;
-        });
-
-        // Tool buttons
         const toolButtons = document.querySelectorAll(".tool-button");
         toolButtons.forEach(button => {
             button.addEventListener("click", () => {
@@ -316,37 +303,55 @@
             });
         });
 
-        // Export map to JSON
         exportButton.addEventListener("click", () => {
             const dataStr = JSON.stringify(hexMap, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "hexmap.json";
+            a.download = "hexMap.json";
             a.click();
+            URL.revokeObjectURL(url);
         });
 
-        // Import map from JSON
         importButton.addEventListener("click", () => {
             fileInput.click();
         });
 
         fileInput.addEventListener("change", event => {
             const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = () => {
-                const importedMap = JSON.parse(reader.result);
-                importedMap.forEach((hex, i) => hexMap[i].color = hex.color);
-                drawMap();
-            };
-            reader.readAsText(file);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const json = JSON.parse(e.target.result);
+                    hexMap.length = 0;
+                    hexMap.push(...json);
+                    saveHistory();
+                    drawMap();
+                };
+                reader.readAsText(file);
+            }
         });
 
         // Undo and Redo buttons
         undoButton.addEventListener("click", undo);
         redoButton.addEventListener("click", redo);
 
+        // Obsługa skrótów klawiszowych
+        document.addEventListener("keydown", event => {
+            if (event.ctrlKey && event.key === "z") {
+                // Ctrl + Z: Undo
+                event.preventDefault(); // Zapobiegaj domyślnym akcjom (np. cofaniu w polach tekstowych)
+                undo();
+            }
+            if (event.ctrlKey && event.key === "y") {
+                // Ctrl + Y: Redo
+                event.preventDefault(); // Zapobiegaj domyślnym akcjom
+                redo();
+            }
+        });
+
+        saveHistory();
         drawMap();
     </script>
 </body>
