@@ -101,12 +101,12 @@
         const undoButton = document.getElementById("undoButton");
         const redoButton = document.getElementById("redoButton");
 
-        const hexRadius = 30;
+        const hexRadius = 25;
         const hexHeight = Math.sqrt(3) * hexRadius;
         const hexWidth = 2 * hexRadius;
         const hexVerticalSpacing = hexHeight;
-        const cols = 25;
-        const rows = 13;
+        const cols = 34;
+        const rows = 15;
         const hexMap = [];
         let selectedColor = "#228B22"; 
         let isPainting = false;
@@ -186,15 +186,21 @@
         }
 
         function saveHistory() {
+            const currentState = JSON.stringify(hexMap);
+
+            // Sprawdź, czy stan mapy różni się od poprzedniego w historii
+            if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === currentState) {
+                return; // Jeśli stan jest identyczny, nie dodawaj do historii
+            }
+
+            // Usuń stany „przyszłe” (jeśli wykonano zmianę po cofnięciu)
             if (historyIndex < history.length - 1) {
                 history = history.slice(0, historyIndex + 1);
             }
 
-            const currentState = JSON.stringify(hexMap);
-            if (history.length === 0 || JSON.stringify(history[historyIndex]) !== currentState) {
-                history.push(JSON.parse(currentState));
-                historyIndex++;
-            }
+            // Dodaj bieżący stan mapy do historii i zaktualizuj indeks
+            history.push(JSON.parse(currentState));
+            historyIndex++;
         }
 
         function undo() {
@@ -230,29 +236,11 @@
 
         // Paint a hex
         function paintHex(hex) {
-            if (hex.color === selectedColor) return; // Sprawdzenie, czy kolor już jest taki sam
-            saveHistory();  // Save the current state before making a change
-
-            if (selectedTool === "pencil") {
-                hex.color = selectedColor;
-            } else if (selectedTool === "big-pencil") {
-                const neighbors = [
-                    { q: hex.q, r: hex.r },
-                    { q: hex.q + 1, r: hex.r },
-                    { q: hex.q - 1, r: hex.r },
-                    { q: hex.q, r: hex.r + 1 },
-                    { q: hex.q, r: hex.r - 1 },
-                    { q: hex.q + 1, r: hex.r + 1 },
-                    { q: hex.q - 1, r: hex.r + 1 }
-                ];
-                neighbors.forEach(neighbor => {
-                    const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
-                    if (hexToPaint && hexToPaint.color !== selectedColor) { // Sprawdzenie koloru sąsiadów
-                        hexToPaint.color = selectedColor;
-                    }
-                });
-            } else if (selectedTool === "bucket") {
+            if (selectedTool === "bucket") {
                 if (hex.color === selectedColor) return;
+
+                saveHistory(); // Zapisz historię przed rozpoczęciem operacji „bucket”
+
                 const targetColor = hex.color;
                 const queue = [hex];
                 while (queue.length) {
@@ -267,8 +255,33 @@
                         queue.push(...neighbors.filter(h => h.color === targetColor));
                     }
                 }
+                drawMap();
+            } else {
+                if (hex.color === selectedColor) return;
+
+                saveHistory(); // Zapisz historię przed innymi operacjami
+
+                if (selectedTool === "pencil") {
+                    hex.color = selectedColor;
+                } else if (selectedTool === "big-pencil") {
+                    const neighbors = [
+                        { q: hex.q, r: hex.r },
+                        { q: hex.q + 1, r: hex.r },
+                        { q: hex.q - 1, r: hex.r },
+                        { q: hex.q, r: hex.r + 1 },
+                        { q: hex.q, r: hex.r - 1 },
+                        { q: hex.q + 1, r: hex.r + 1 },
+                        { q: hex.q - 1, r: hex.r + 1 }
+                    ];
+                    neighbors.forEach(neighbor => {
+                        const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
+                        if (hexToPaint && hexToPaint.color !== selectedColor) {
+                            hexToPaint.color = selectedColor;
+                        }
+                    });
+                }
+                drawMap();
             }
-            drawMap();
         }
 
 
