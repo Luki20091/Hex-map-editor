@@ -9,6 +9,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             overflow: hidden;
+            display: flex;
         }
         canvas {
             display: block;
@@ -16,19 +17,35 @@
             cursor: pointer;
         }
         #controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 8px;
+            width: 200px;
+            overflow-y: auto;
+            max-height: 100vh;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
         }
-        input[type="color"] {
+        .tile {
+            display: flex;
+            align-items: center;
             margin: 5px 0;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: ease-in-out background 0.2s;
+        }
+        .tile:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .tile-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            margin-right: 10px;
         }
         button {
             display: block;
-            margin: 5px 0;
+            margin: 10px 0;
             padding: 5px 10px;
             border: none;
             background: #007BFF;
@@ -44,8 +61,7 @@
 <body>
     <canvas id="hexCanvas"></canvas>
     <div id="controls">
-        <label for="colorPicker">Pick a Color:</label>
-        <input type="color" id="colorPicker" value="#ff0000">
+        <div id="terrainList"></div>
         <button id="exportButton">Export to JSON</button>
         <button id="importButton">Import from JSON</button>
         <input type="file" id="fileInput" style="display:none;">
@@ -53,10 +69,10 @@
     <script>
         const canvas = document.getElementById("hexCanvas");
         const ctx = canvas.getContext("2d");
-        const colorPicker = document.getElementById("colorPicker");
         const exportButton = document.getElementById("exportButton");
         const importButton = document.getElementById("importButton");
         const fileInput = document.getElementById("fileInput");
+        const terrainList = document.getElementById("terrainList");
 
         // Hex map parameters
         const hexRadius = 30;
@@ -66,10 +82,45 @@
         const cols = 20;
         const rows = 20;
         const hexMap = [];
+        let selectedColor = "#000000";
         let isPainting = false;
 
         canvas.width = cols * hexWidth * 0.75 + hexRadius;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+
+        // Terrain types
+        const terrains = [
+            { name: "Mountains", color: "#8B4513" },
+            { name: "Water", color: "#1E90FF" },
+            { name: "Plains", color: "#228B22" },
+            { name: "Desert", color: "#DAA520" },
+            { name: "Forest", color: "#006400" }
+        ];
+
+        // Populate terrain list
+        terrains.forEach(terrain => {
+            const tile = document.createElement("div");
+            tile.classList.add("tile");
+            tile.dataset.color = terrain.color;
+
+            const colorBox = document.createElement("div");
+            colorBox.classList.add("tile-color");
+            colorBox.style.backgroundColor = terrain.color;
+
+            const label = document.createElement("span");
+            label.textContent = terrain.name;
+
+            tile.appendChild(colorBox);
+            tile.appendChild(label);
+            terrainList.appendChild(tile);
+
+            // Set selected color on click
+            tile.addEventListener("click", () => {
+                selectedColor = terrain.color;
+                document.querySelectorAll(".tile").forEach(t => t.classList.remove("selected"));
+                tile.classList.add("selected");
+            });
+        });
 
         // Initialize hex map
         for (let r = 0; r < rows; r++) {
@@ -127,7 +178,7 @@
             const mouseY = event.clientY - rect.top;
             const hex = getHexAt(mouseX, mouseY);
             if (hex) {
-                hex.color = colorPicker.value;
+                hex.color = selectedColor;
                 drawMap();
             }
         }
