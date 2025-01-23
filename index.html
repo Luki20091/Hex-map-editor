@@ -149,12 +149,24 @@
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
 
         const terrains = [
-            { name: "Mountains", color: "#8B4513" },
-            { name: "Water", color: "#1E90FF" },
-            { name: "Plains", color: "#228B22" },
-            { name: "Desert", color: "#DAA520" },
-            { name: "Forest", color: "#006400" }
+            { name: "Desert", color: "#FFD700" },        // Jasnozłoty dla pustyni
+            { name: "Cactus Desert", color: "#CD853F" }, // Brązowawy dla pustyni z kaktusami
+            { name: "Dunes", color: "#F0E68C" },         // Jasnożółty dla wydm
+            { name: "Mountains", color: "#777777" },     // Ciemnoczerwony dla gór
+            { name: "Forest", color: "#1a7a1a" },        // Ciemna, głęboka zieleń dla lasu
+            { name: "Meadow", color: "#00bb00" },        // Intensywna jaskrawa zieleń dla łąki
+            { name: "Grassland", color: "#7FFF00" },     // Limonkowa zieleń dla trawiastych terenów
+            { name: "Jungle", color: "#228B66" },        // Leśna zieleń dla dżungli
+            { name: "Swamp", color: "#3fabaa" },         // Głęboki, ciemnofioletowy dla bagien
+            { name: "Highlands", color: "#6B8E23" },     // Oliwkowozielony dla wyżyn
+            { name: "Snowfield", color: "#FFFFFF" },     // Biel dla śnieżnych terenów
+            { name: "Snowy Forest", color: "#87ddEB" },  // Jasnoniebieski dla lasu pokrytego śniegiem
+            { name: "Glacier", color: "#4682B4" },       // Stalowy niebieski dla lodowców
+            { name: "Water", color: "#3fabff" },         // Morski dla wody
+            { name: "Ocean", color: "#325ddb" }          // Ciemny morski dla oceanu
         ];
+
+
 
         terrains.forEach(terrain => {
             const tile = document.createElement("div");
