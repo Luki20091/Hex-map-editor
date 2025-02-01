@@ -2,6 +2,9 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta 1.1:
+- [ ] Even R offset
+
+# Version Beta 1.1:
 - [x] More hex types
 
 # Version Beta:
