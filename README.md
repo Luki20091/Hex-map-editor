@@ -1,7 +1,7 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
-# Version Beta 1.1:
+# Version Beta 1.2:
 - [ ] Even R offset
 
 # Version Beta 1.1:
