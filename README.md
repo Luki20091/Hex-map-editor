@@ -4,7 +4,7 @@
 # Version Beta 1.2:
 - [x] Even R offset
 - [x] Cursor as selected tool
-- [x] Terrain list as hex shapes
+- [x] Tile map as hex shapes
 
 # Version Beta 1.1:
 - [x] More hex types
