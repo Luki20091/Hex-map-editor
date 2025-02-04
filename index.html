@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hex Map Editor - BETA 1.1</title>
+    <title>Hex Map Editor - BETA 1.2</title>
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,7 +16,7 @@
         canvas {
             display: block;
             background-color: #333333;
-            cursor: pointer;
+            cursor: url('assets/cursors/pencil.svg') 0 32, auto;
             height: min-content;
             width: min-content;
         }
@@ -45,10 +45,10 @@
             background: rgba(0, 123, 255, 0.2);
         }
         .tile-color {
-            width: 24px;
             height: 24px;
-            border-radius: 4px;
             margin-right: 10px;
+            aspect-ratio: cos(30deg);
+            clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
         }
         button {
             display: block;
@@ -93,9 +93,9 @@
     <canvas id="hexCanvas"></canvas>
     <div id="controls">
         <div id="terrainList"></div>
-        <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil-alt"></i></button>
-        <button class="tool-button" data-tool="big-pencil"><i class="fas fa-pencil-ruler"></i></button>
-        <button class="tool-button" data-tool="bucket"><i class="fas fa-tint"></i></button>
+        <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil"></i></button>
+        <button class="tool-button" data-tool="big-pencil"><i class="fa-solid fa-paintbrush"></i></button>
+        <button class="tool-button" data-tool="bucket"><i class="fa-solid fa-fill-drip fa-flip-horizontal"></i></button>
         <button id="resetButton">Reset Map</button> <!-- Nowy przycisk do resetowania mapy -->
         <button id="exportButton">Export to JSON</button>
         <button id="importButton">Import from JSON</button>
@@ -166,6 +166,10 @@
             { name: "Ocean", color: "#325ddb" }          // Ciemny morski dla oceanu
         ];
 
+        const castles = [
+            { name: "Poland", id: 1, flag: "https://flagcdn.com/pl.svg" }, 
+            { name: "Germany", id: 2, flag: "https://flagcdn.com/de.svg" }
+        ];
 
 
         terrains.forEach(terrain => {
@@ -240,6 +244,7 @@
             });
         }
 
+
         function saveHistory() {
             history.length = historyIndex + 1;
             history.push(JSON.parse(JSON.stringify(hexMap)));
@@ -280,7 +285,6 @@
         function paintHex(hex) {
             if (selectedTool === "bucket") {
                 if (hex.color === selectedColor) return;
-
                 saveHistory();
 
                 const targetColor = hex.color;
@@ -367,6 +371,7 @@
         toolButtons.forEach(button => {
             button.addEventListener("click", () => {
                 selectedTool = button.dataset.tool;
+                document.querySelector("canvas").style.cursor = "url('assets/cursors/"+selectedTool+".svg') 0 32, auto";
                 toolButtons.forEach(btn => btn.classList.remove("selected"));
                 button.classList.add("selected");
             });
