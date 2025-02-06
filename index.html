@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hex Map Editor - BETA 1.2</title>
-    <!-- Font Awesome for icons -->
+    <title>Hex Map Editor - BETA 1.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
     <style>
         body {
@@ -50,6 +49,11 @@
             aspect-ratio: cos(30deg);
             clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
         }
+
+        .tile-flag img {
+            height: 24px;
+            margin-right: 10px;
+        }
         button {
             display: block;
             margin: 10px 0;
@@ -92,18 +96,20 @@
 <body>
     <canvas id="hexCanvas"></canvas>
     <div id="controls">
+        <button id="switchModeButton">Mode: Colors</button>
         <div id="terrainList"></div>
+        <div id="objectList"></div>
         <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil"></i></button>
         <button class="tool-button" data-tool="big-pencil"><i class="fa-solid fa-paintbrush"></i></button>
         <button class="tool-button" data-tool="bucket"><i class="fa-solid fa-fill-drip fa-flip-horizontal"></i></button>
-        <button id="resetButton">Reset Map</button> <!-- Nowy przycisk do resetowania mapy -->
+        <button class="tool-button" data-tool="eraser"><i class="fa-solid fa-eraser"></i></button>
+        <button id="resetButton">Reset Map</button>
         <button id="exportButton">Export to JSON</button>
         <button id="importButton">Import from JSON</button>
         <button id="undoButton">Undo</button>
         <button id="redoButton">Redo</button>
         <input type="file" id="fileInput" style="display:none;">
         
-        <!-- Formularz do zmiany wymiarów mapy -->
         <div class="input-group">
             <label for="cols">Columns: </label>
             <input type="number" id="cols" value="29" min="5" max="100" />
@@ -122,6 +128,7 @@
         const importButton = document.getElementById("importButton");
         const fileInput = document.getElementById("fileInput");
         const terrainList = document.getElementById("terrainList");
+        const objectList = document.getElementById("objectList");
         const undoButton = document.getElementById("undoButton");
         const redoButton = document.getElementById("redoButton");
         const resetButton = document.getElementById("resetButton");
@@ -138,13 +145,14 @@
         let cols = 29;
         let rows = 17;
         const hexMap = [];
-        let selectedColor = "#228B22";
+        let selectedColor = "";
         let isPainting = false;
         let selectedTool = "pencil";
+        let selectedObject = null;
+        let drawMode = "color"; // Możliwe wartości: "color", "object"
         let history = [];
         let historyIndex = -1;
 
-        // Początkowa szerokość i wysokość canvasu
         canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
         canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
 
@@ -166,9 +174,9 @@
             { name: "Ocean", color: "#325ddb" }          // Ciemny morski dla oceanu
         ];
 
-        const castles = [
-            { name: "Poland", id: 1, flag: "https://flagcdn.com/pl.svg" }, 
-            { name: "Germany", id: 2, flag: "https://flagcdn.com/de.svg" }
+        const objects = [
+            { name: "Poland", id: 1}, 
+            { name: "Germany", id: 2}
         ];
 
 
@@ -195,6 +203,37 @@
             });
         });
 
+
+        objects.forEach(object => {
+            const tile = document.createElement("div");
+            tile.classList.add("tile");
+            tile.dataset.object = object.id;
+
+            const flagContainer = document.createElement("div");
+            flagContainer.classList.add("tile-flag");
+
+            const flagImage = document.createElement("img");
+            const flagPath = "./assets/flags/"+object.name+".svg"; 
+            flagImage.src = flagPath;
+            flagImage.alt = `${object.name} flag`;
+
+            flagContainer.appendChild(flagImage);
+
+            const label = document.createElement("span");
+            label.textContent = object.name;
+
+            tile.appendChild(flagContainer);
+            tile.appendChild(label);
+            objectList.appendChild(tile);
+
+            tile.addEventListener("click", () => {
+                selectedObject = object.id;
+                document.querySelectorAll("#objectList .tile").forEach(t => t.classList.remove("selected"));
+                tile.classList.add("selected");
+            });
+        });
+
+
         document.querySelectorAll(".tile").forEach(tile => {
             if (tile.dataset.color === selectedColor) {
                 tile.classList.add("selected");
@@ -219,7 +258,7 @@
             }
         }
 
-        function drawHex(x, y, color = "#BBBBBB") {
+        function drawHex(x, y, color = "#BBBBBB", object = 0) {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = Math.PI / 3 * i + Math.PI / 6;
@@ -235,14 +274,37 @@
             ctx.stroke();
         }
 
+
+
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             hexMap.forEach(hex => {
                 const x = hex.q * hexHorizontalSpacing + (hex.r % 2 === 0 ? 0 : hexWidth / 2) + hexWidth / 2;
                 const y = hex.r * hexVerticalSpacing + hexHeight / 2;
-                drawHex(x, y, hex.color);
+
+                drawHex(x, y, hex.color, hex.object);
+
+                if (hex.object) {
+                    const object = objects.find(c => c.id === hex.object);
+                    if (object) {
+                        
+                        const flagPath = "./assets/flags/" + object.name + ".svg";
+
+                        const image = getImage(flagPath);
+                        if (image) {
+                            ctx.drawImage(image, x - hexRadius / 2, y - hexRadius / 2, hexRadius, hexRadius);
+                        } else {
+                            loadImage(flagPath, (loadedImage) => {
+                                ctx.drawImage(loadedImage, x - hexRadius / 2, y - hexRadius / 2, hexRadius, hexRadius);
+                            });
+                        }
+                    }
+                }
             });
         }
+
+
 
 
         function saveHistory() {
@@ -282,6 +344,45 @@
             return null;
         }
 
+
+
+
+
+
+
+
+
+
+
+        
+        function getTerrainColorByName(name) {
+            const terrain = terrains.find(terrain => terrain.name === name);
+            return terrain ? terrain.color : null;
+        }
+
+
+        const blockedColors = [
+            getTerrainColorByName("Mountains"),
+            getTerrainColorByName("Water"),
+            getTerrainColorByName("Ocean")
+        ];
+
+        function isBlockedForObjects(hex) {
+            return blockedColors.includes(hex.color);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
         function paintHex(hex) {
             if (selectedTool === "bucket") {
                 if (hex.color === selectedColor) return;
@@ -293,57 +394,77 @@
                     const current = queue.pop();
                     if (current.color === targetColor) {
                         current.color = selectedColor;
+                        
+                        if (blockedColors.includes(selectedColor) && current.object !== 0) current.object = 0;
+
                         const neighbors = hexMap.filter(h => {
                             const dx = Math.abs(h.q - current.q);
                             const dy = Math.abs(h.r - current.r);
                             return dx <= 1 && dy <= 1;
                         });
+
                         queue.push(...neighbors.filter(h => h.color === targetColor));
                     }
                 }
                 drawMap();
             } else {
-                if (hex.color === selectedColor) return;
 
                 saveHistory();
 
                 if (selectedTool === "pencil") {
-                    hex.color = selectedColor;
+                    if (drawMode === "color") {
+                        if (hex.color === selectedColor) return;
+                        if (blockedColors.includes(selectedColor) && hex.object !== 0) hex.object = 0;
+                        hex.color = selectedColor;
+                    } else if (drawMode === "object") {
+                        if (!selectedObject) return;
+                        if (isBlockedForObjects(hex)) return;
+                        hex.object = selectedObject;
+                    }
                 } else if (selectedTool === "big-pencil") {
-                    const isEvenRow = hex.r % 2 === 0;
+                    if (hex.color === selectedColor) return;
+                        const isEvenRow = hex.r % 2 === 0;
 
-                    const neighborsEvenRow = [
-                        { q: hex.q, r: hex.r },
-                        { q: hex.q + 1, r: hex.r },
-                        { q: hex.q - 1, r: hex.r },
-                        { q: hex.q, r: hex.r - 1 },
-                        { q: hex.q, r: hex.r + 1 },
-                        { q: hex.q - 1, r: hex.r - 1 },
-                        { q: hex.q - 1, r: hex.r + 1 }
-                    ];
+                        const neighborsEvenRow = [
+                            { q: hex.q, r: hex.r },
+                            { q: hex.q + 1, r: hex.r },
+                            { q: hex.q - 1, r: hex.r },
+                            { q: hex.q, r: hex.r - 1 },
+                            { q: hex.q, r: hex.r + 1 },
+                            { q: hex.q - 1, r: hex.r - 1 },
+                            { q: hex.q - 1, r: hex.r + 1 }
+                        ];
 
-                    const neighborsOddRow = [
-                        { q: hex.q, r: hex.r },
-                        { q: hex.q + 1, r: hex.r },
-                        { q: hex.q - 1, r: hex.r },
-                        { q: hex.q, r: hex.r - 1 },
-                        { q: hex.q, r: hex.r + 1 },
-                        { q: hex.q + 1, r: hex.r - 1 },
-                        { q: hex.q + 1, r: hex.r + 1 }
-                    ];
+                        const neighborsOddRow = [
+                            { q: hex.q, r: hex.r },
+                            { q: hex.q + 1, r: hex.r },
+                            { q: hex.q - 1, r: hex.r },
+                            { q: hex.q, r: hex.r - 1 },
+                            { q: hex.q, r: hex.r + 1 },
+                            { q: hex.q + 1, r: hex.r - 1 },
+                            { q: hex.q + 1, r: hex.r + 1 }
+                        ];
 
-                    const filledCircle = isEvenRow ? neighborsEvenRow : neighborsOddRow;
+                        const filledCircle = isEvenRow ? neighborsEvenRow : neighborsOddRow;
 
-                    filledCircle.forEach(neighbor => {
-                        const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
-                        if (hexToPaint && hexToPaint.color !== selectedColor) {
-                            hexToPaint.color = selectedColor;
-                        }
-                    });
+                        filledCircle.forEach(neighbor => {
+                            const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
+                            
+                            if (hexToPaint && hexToPaint.color !== selectedColor) {
+                                if (blockedColors.includes(selectedColor) && hexToPaint.object !== 0) hexToPaint.object = 0;
+                                hexToPaint.color = selectedColor;
+                            }
+                        });
+                } else if (selectedTool === "eraser") {
+                    if (hex.object) {
+                        hex.object = null;
+                    }
                 }
+
                 drawMap();
             }
         }
+
 
         canvas.addEventListener("mousedown", event => {
             isPainting = true;
@@ -370,15 +491,33 @@
         const toolButtons = document.querySelectorAll(".tool-button");
         toolButtons.forEach(button => {
             button.addEventListener("click", () => {
-                selectedTool = button.dataset.tool;
-                document.querySelector("canvas").style.cursor = "url('assets/cursors/"+selectedTool+".svg') 0 32, auto";
-                toolButtons.forEach(btn => btn.classList.remove("selected"));
-                button.classList.add("selected");
+                setTool(button);
             });
         });
 
+
+        function setTool(button) {
+            selectedTool = button.dataset.tool;
+
+            document.querySelector("canvas").style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+
+            document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("selected"));
+            button.classList.add("selected");
+        }
+
+
+
+
+
+
+
+
+
+        let title = "testowy tytuł";
+        let description = "testowy opis";
+
         exportButton.addEventListener("click", () => {
-            const dataStr = JSON.stringify({ hexMap, cols, rows }, null, 2);
+            const dataStr = JSON.stringify({ hexMap, title, description, cols, rows }, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -398,13 +537,11 @@
                 const reader = new FileReader();
                 reader.onload = e => {
                     const json = JSON.parse(e.target.result);
-                    // Zaktualizuj wymiary na podstawie zaimportowanych danych
                     cols = json.cols || cols;
                     rows = json.rows || rows;
                     hexMap.length = 0;
                     hexMap.push(...json.hexMap);
 
-                    // Aktualizuj rozmiar canvasu
                     canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
                     canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
 
@@ -429,12 +566,10 @@
             }
         });
 
-        // Resize map when clicking on the Resize Map button
         resizeButton.addEventListener("click", () => {
             cols = parseInt(colsInput.value);
             rows = parseInt(rowsInput.value);
 
-            // Ensure that map dimensions are within the limits
             if (rows < 5) rows = 5;
             if (cols < 5) cols = 5;
 
@@ -446,12 +581,107 @@
                 }
             }
 
-            // Update canvas size
             canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
             canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
             drawMap();
         });
 
+
+
+
+
+
+
+
+
+
+        function updateListVisibility() {
+            const colorList = document.getElementById("terrainList");
+            const objectList = document.getElementById("objectList");
+
+            const allTools = document.querySelectorAll(".tool-button");
+            const pencilTool = document.querySelector('[data-tool="pencil"]');
+            const bigPencilTool = document.querySelector('[data-tool="big-pencil"]');
+            const bucketTool = document.querySelector('[data-tool="bucket"]');
+            const eraserTool = document.querySelector('[data-tool="eraser"]');
+
+            if (drawMode === "color") {
+                colorList.style.display = "block";
+                objectList.style.display = "none";
+
+                allTools.forEach(tool => tool.style.display = "block");
+                if (eraserTool) eraserTool.style.display = "none";
+            } else {
+                colorList.style.display = "none";
+                objectList.style.display = "block";
+
+                allTools.forEach(tool => tool.style.display = "none");
+                if (pencilTool) pencilTool.style.display = "block";
+                if (eraserTool) eraserTool.style.display = "block";
+            }
+            
+            setTool(document.querySelector(".tool-button[data-tool='pencil']"));
+        }
+
+
+
+
+
+        const switchModeButton = document.getElementById("switchModeButton");
+
+        switchModeButton.addEventListener("click", () => {
+            drawMode = drawMode === "color" ? "object" : "color";
+            switchModeButton.textContent = `Mode: ${drawMode === "color" ? "Colors" : "Objects"}`;
+            updateListVisibility();
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let imageCache = {};
+
+        function loadImage(imagePath, callback) {
+            if (imageCache[imagePath]) {
+                callback(imageCache[imagePath]);
+                return;
+            }
+
+            fetch(imagePath)
+                .then(response => response.text())
+                .then(data => {
+                    const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    const image = new Image();
+                    image.onload = function () {
+                        imageCache[imagePath] = image;
+                        callback(image);
+                        URL.revokeObjectURL(url);
+                    };
+                    image.src = url;
+                })
+                .catch(error => console.error("Error loading image:", error));
+        }
+
+        function getImage(imagePath) {
+            return imageCache[imagePath];
+        }
+
+
+
+
+
+
+        updateListVisibility();
         saveHistory();
         drawMap();
     </script>
