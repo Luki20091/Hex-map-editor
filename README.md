@@ -2,17 +2,21 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta 1.5:
-- [ ] Movement (WSAD + Scroll btn)
+- [ ] Units and castles
+- [ ] Zoom to center
+- [ ] Move limits
 
 # Version Beta 1.4:
-- [ ] Units and castles
+- [x] Move tool (WSAD + mouse buttons)
+- [x] Zoom slider + buttons
+- [x] Even R offset
+- [x] Max/min map sizes
       
 # Version Beta 1.3:
 - [x] Colors/Objects mode
 - [x] Eraser tool in objects mode
       
 # Version Beta 1.2:
-- [x] Even R offset
 - [x] Cursor as selected tool
 - [x] Tile map as hex shapes
 
