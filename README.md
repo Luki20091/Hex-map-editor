@@ -1,6 +1,12 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
+# Version Beta 1.5:
+- [ ] Movement (WSAD + Scroll btn)
+
+# Version Beta 1.4:
+- [ ] .
+      
 # Version Beta 1.3:
 - [x] Colors/Objects mode
 - [x] Eraser tool in objects mode
