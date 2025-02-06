@@ -5,7 +5,7 @@
 - [ ] Movement (WSAD + Scroll btn)
 
 # Version Beta 1.4:
-- [ ] .
+- [ ] Units and castles
       
 # Version Beta 1.3:
 - [x] Colors/Objects mode
