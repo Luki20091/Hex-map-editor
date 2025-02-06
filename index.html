@@ -1,689 +1,812 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hex Map Editor - BETA 1.3</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            background-color: #333333;
-            cursor: url('assets/cursors/pencil.svg') 0 32, auto;
-            height: min-content;
-            width: min-content;
-        }
-        #controls {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 8px;
-            width: 200px;
-            overflow-y: auto;
-            max-height: 100vh;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-        }
-        .tile {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 4px;
-            transition: ease-in-out background 0.2s;
-        }
-        .tile:hover {
-            background: rgba(0, 0, 0, 0.1);
-        }
-        .tile.selected {
-            background: rgba(0, 123, 255, 0.2);
-        }
-        .tile-color {
-            height: 24px;
-            margin-right: 10px;
-            aspect-ratio: cos(30deg);
-            clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
-        }
-
-        .tile-flag img {
-            height: 24px;
-            margin-right: 10px;
-        }
-        button {
-            display: block;
-            margin: 10px 0;
-            padding: 5px 10px;
-            border: none;
-            background: #007BFF;
-            color: #fff;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .tool-button {
-            margin: 5px 0;
-            padding: 10px;
-            border: none;
-            background: #007BFF;
-            color: #fff;
-            cursor: pointer;
-            border-radius: 4px;
-            display: block;
-            font-size: 20px;
-            text-align: center;
-        }
-        .tool-button.selected {
-            background: #0056b3;
-        }
-        .input-group {
-            margin: 10px 0;
-        }
-        input[type="number"] {
-            width: 60px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <!-- Zablokowanie przybliżania/oddalania strony przez przeglądarkę -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hex Map Editor - BETA 1.4</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background-color: #111111;
+      cursor: url('assets/cursors/pencil.svg') 0 32, auto;
+      height: min-content;
+      width: min-content;
+    }
+    #controls {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      width: 240px;
+      overflow-y: auto;
+      max-height: 100vh;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+      position: fixed;
+    }
+    .tile {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+      transition: ease-in-out background 0.2s;
+    }
+    .tile:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .tile.selected {
+      background: rgba(0, 123, 255, 0.2);
+    }
+    .tile-color {
+      height: 24px;
+      margin-right: 10px;
+      aspect-ratio: 1;
+      clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
+    }
+    .tile-flag img {
+      height: 24px;
+      margin-right: 10px;
+    }
+    button {
+      display: block;
+      margin: 10px 0;
+      padding: 5px 10px;
+      border: none;
+      background: #007BFF;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .tool-button {
+      margin: 5px 0;
+      padding: 10px;
+      border: none;
+      background: #007BFF;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      display: block;
+      font-size: 20px;
+      text-align: center;
+    }
+    .tool-button.selected {
+      background: #0056b3;
+    }
+    .input-group {
+      margin: 10px 0;
+    }
+    input[type="number"],
+    input[type="range"] {
+      width: 100%;
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
 <body>
-    <canvas id="hexCanvas"></canvas>
-    <div id="controls">
-        <button id="switchModeButton">Mode: Colors</button>
-        <div id="terrainList"></div>
-        <div id="objectList"></div>
-        <button class="tool-button selected" data-tool="pencil"><i class="fas fa-pencil"></i></button>
-        <button class="tool-button" data-tool="big-pencil"><i class="fa-solid fa-paintbrush"></i></button>
-        <button class="tool-button" data-tool="bucket"><i class="fa-solid fa-fill-drip fa-flip-horizontal"></i></button>
-        <button class="tool-button" data-tool="eraser"><i class="fa-solid fa-eraser"></i></button>
-        <button id="resetButton">Reset Map</button>
-        <button id="exportButton">Export to JSON</button>
-        <button id="importButton">Import from JSON</button>
-        <button id="undoButton">Undo</button>
-        <button id="redoButton">Redo</button>
-        <input type="file" id="fileInput" style="display:none;">
-        
-        <div class="input-group">
-            <label for="cols">Columns: </label>
-            <input type="number" id="cols" value="29" min="5" max="100" />
-        </div>
-        <div class="input-group">
-            <label for="rows">Rows: </label>
-            <input type="number" id="rows" value="17" min="5" max="100" />
-        </div>
-        <button id="resizeButton">Resize Map</button>
+  <canvas id="hexCanvas"></canvas>
+  <div id="controls">
+    <button id="switchModeButton">Mode: Colors</button>
+    <div id="terrainList"></div>
+    <div id="objectList"></div>
+    <button class="tool-button selected" data-tool="move"><i class="fas fa-arrows-alt"></i></button>
+    <button class="tool-button" data-tool="pencil"><i class="fas fa-pencil"></i></button>
+    <button class="tool-button" data-tool="big-pencil"><i class="fa-solid fa-paintbrush"></i></button>
+    <button class="tool-button" data-tool="bucket"><i class="fa-solid fa-fill-drip fa-flip-horizontal"></i></button>
+    <button class="tool-button" data-tool="eraser"><i class="fa-solid fa-eraser"></i></button>
+    <button id="resetButton">Reset Map</button>
+    <button id="exportButton">Export to JSON</button>
+    <button id="importButton">Import from JSON</button>
+    <button id="undoButton">Undo</button>
+    <button id="redoButton">Redo</button>
+    <input type="file" id="fileInput" style="display:none;">
+    <div class="input-group">
+      <label for="cols">Columns: </label>
+      <input type="number" id="cols" value="29" min="5" max="60" />
     </div>
+    <div class="input-group">
+      <label for="rows">Rows: </label>
+      <input type="number" id="rows" value="17" min="5" max="40" />
+    </div>
+    <!-- Sterowanie zoomem mapy (rozmiarem hexów) -->
+    <div class="input-group">
+      <label for="hexSize">Hex Size (Zoom):</label>
+      <input type="range" id="hexSize" min="10" max="50" value="25">
+    </div>
+    <button id="zoomInButton">Zoom In</button>
+    <button id="zoomOutButton">Zoom Out</button>
+    <button id="resizeButton">Resize Map</button>
+  </div>
 
-    <script>
-        const canvas = document.getElementById("hexCanvas");
-        const ctx = canvas.getContext("2d");
-        const exportButton = document.getElementById("exportButton");
-        const importButton = document.getElementById("importButton");
-        const fileInput = document.getElementById("fileInput");
-        const terrainList = document.getElementById("terrainList");
-        const objectList = document.getElementById("objectList");
-        const undoButton = document.getElementById("undoButton");
-        const redoButton = document.getElementById("redoButton");
-        const resetButton = document.getElementById("resetButton");
-        const resizeButton = document.getElementById("resizeButton");
-        const colsInput = document.getElementById("cols");
-        const rowsInput = document.getElementById("rows");
+  <script>
+    // =======================
+    // Zmienne globalne i ustawienia
+    // =======================
+    const canvas = document.getElementById("hexCanvas");
+    const ctx = canvas.getContext("2d");
+    const exportButton = document.getElementById("exportButton");
+    const importButton = document.getElementById("importButton");
+    const fileInput = document.getElementById("fileInput");
+    const terrainList = document.getElementById("terrainList");
+    const objectList = document.getElementById("objectList");
+    const undoButton = document.getElementById("undoButton");
+    const redoButton = document.getElementById("redoButton");
+    const resetButton = document.getElementById("resetButton");
+    const resizeButton = document.getElementById("resizeButton");
+    const colsInput = document.getElementById("cols");
+    const rowsInput = document.getElementById("rows");
+    const hexSizeInput = document.getElementById("hexSize");
+    const zoomInButton = document.getElementById("zoomInButton");
+    const zoomOutButton = document.getElementById("zoomOutButton");
 
-        const hexRadius = 25;
-        const hexWidth = Math.sqrt(3) * hexRadius;
-        const hexHeight = 2 * hexRadius;
-        const hexHorizontalSpacing = hexWidth;
-        const hexVerticalSpacing = hexHeight * 0.75;
+    // Inicjalizacja rozmiaru hexów
+    let hexRadius = parseInt(hexSizeInput.value);
+    let hexWidth = Math.sqrt(3) * hexRadius;
+    let hexHeight = 2 * hexRadius;
+    // Obliczamy odstęp (gap) – przyjmujemy 10% hexRadius, minimum 1px
+    let gap = Math.max(1, hexRadius * 0.1);
+    let hexHorizontalSpacing = hexWidth + gap;
+    let hexVerticalSpacing = hexHeight * 0.75 + gap;
 
-        let cols = 29;
-        let rows = 17;
-        const hexMap = [];
-        let selectedColor = "";
-        let isPainting = false;
-        let selectedTool = "pencil";
-        let selectedObject = null;
-        let drawMode = "color"; // Możliwe wartości: "color", "object"
-        let history = [];
-        let historyIndex = -1;
+    let cols = 29;
+    let rows = 17;
+    const hexMap = [];
+    let selectedColor = "";
+    let isPainting = false;
+    let selectedTool = "move";
+    let selectedObject = null;
+    let drawMode = "color"; // Możliwe wartości: "color", "object"
+    let history = [];
+    let historyIndex = -1;
 
-        canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
-        canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+    // =======================
+    // Definicje terenów i obiektów
+    // =======================
+    const terrains = [
+      { name: "Desert", color: "#FFD700" },
+      { name: "Cactus Desert", color: "#CD853F" },
+      { name: "Dunes", color: "#F0E68C" },
+      { name: "Mountains", color: "#777777" },
+      { name: "Forest", color: "#1a7a1a" },
+      { name: "Meadow", color: "#00bb00" },
+      { name: "Grassland", color: "#7FFF00" },
+      { name: "Jungle", color: "#228B66" },
+      { name: "Swamp", color: "#3fabaa" },
+      { name: "Highlands", color: "#6B8E23" },
+      { name: "Snowfield", color: "#FFFFFF" },
+      { name: "Snowy Forest", color: "#87ddEB" },
+      { name: "Glacier", color: "#4682B4" },
+      { name: "Water", color: "#3fabff" },
+      { name: "Ocean", color: "#325ddb" }
+    ];
 
-        const terrains = [
-            { name: "Desert", color: "#FFD700" },        // Jasnozłoty dla pustyni
-            { name: "Cactus Desert", color: "#CD853F" }, // Brązowawy dla pustyni z kaktusami
-            { name: "Dunes", color: "#F0E68C" },         // Jasnożółty dla wydm
-            { name: "Mountains", color: "#777777" },     // Ciemnoczerwony dla gór
-            { name: "Forest", color: "#1a7a1a" },        // Ciemna, głęboka zieleń dla lasu
-            { name: "Meadow", color: "#00bb00" },        // Intensywna jaskrawa zieleń dla łąki
-            { name: "Grassland", color: "#7FFF00" },     // Limonkowa zieleń dla trawiastych terenów
-            { name: "Jungle", color: "#228B66" },        // Leśna zieleń dla dżungli
-            { name: "Swamp", color: "#3fabaa" },         // Głęboki, ciemnofioletowy dla bagien
-            { name: "Highlands", color: "#6B8E23" },     // Oliwkowozielony dla wyżyn
-            { name: "Snowfield", color: "#FFFFFF" },     // Biel dla śnieżnych terenów
-            { name: "Snowy Forest", color: "#87ddEB" },  // Jasnoniebieski dla lasu pokrytego śniegiem
-            { name: "Glacier", color: "#4682B4" },       // Stalowy niebieski dla lodowców
-            { name: "Water", color: "#3fabff" },         // Morski dla wody
-            { name: "Ocean", color: "#325ddb" }          // Ciemny morski dla oceanu
-        ];
+    const objects = [
+      { name: "Poland", id: 1},
+      { name: "Germany", id: 2}
+    ];
 
-        const objects = [
-            { name: "Poland", id: 1}, 
-            { name: "Germany", id: 2}
-        ];
+    // =======================
+    // Tworzenie listy terenów
+    // =======================
+    terrains.forEach(terrain => {
+      const tile = document.createElement("div");
+      tile.classList.add("tile");
+      tile.dataset.color = terrain.color;
 
+      const colorBox = document.createElement("div");
+      colorBox.classList.add("tile-color");
+      colorBox.style.backgroundColor = terrain.color;
 
-        terrains.forEach(terrain => {
-            const tile = document.createElement("div");
-            tile.classList.add("tile");
-            tile.dataset.color = terrain.color;
+      const label = document.createElement("span");
+      label.textContent = terrain.name;
 
-            const colorBox = document.createElement("div");
-            colorBox.classList.add("tile-color");
-            colorBox.style.backgroundColor = terrain.color;
+      tile.appendChild(colorBox);
+      tile.appendChild(label);
+      terrainList.appendChild(tile);
 
-            const label = document.createElement("span");
-            label.textContent = terrain.name;
+      tile.addEventListener("click", () => {
+        selectedColor = terrain.color;
+        document.querySelectorAll(".tile").forEach(t => t.classList.remove("selected"));
+        tile.classList.add("selected");
+      });
+    });
 
-            tile.appendChild(colorBox);
-            tile.appendChild(label);
-            terrainList.appendChild(tile);
+    // =======================
+    // Tworzenie listy obiektów
+    // =======================
+    objects.forEach(object => {
+      const tile = document.createElement("div");
+      tile.classList.add("tile");
+      tile.dataset.object = object.id;
 
-            tile.addEventListener("click", () => {
-                selectedColor = terrain.color;
-                document.querySelectorAll(".tile").forEach(t => t.classList.remove("selected"));
-                tile.classList.add("selected");
-            });
-        });
+      const flagContainer = document.createElement("div");
+      flagContainer.classList.add("tile-flag");
 
+      const flagImage = document.createElement("img");
+      const flagPath = "./assets/flags/" + object.name + ".svg"; 
+      flagImage.src = flagPath;
+      flagImage.alt = `${object.name} flag`;
 
-        objects.forEach(object => {
-            const tile = document.createElement("div");
-            tile.classList.add("tile");
-            tile.dataset.object = object.id;
+      flagContainer.appendChild(flagImage);
 
-            const flagContainer = document.createElement("div");
-            flagContainer.classList.add("tile-flag");
+      const label = document.createElement("span");
+      label.textContent = object.name;
 
-            const flagImage = document.createElement("img");
-            const flagPath = "./assets/flags/"+object.name+".svg"; 
-            flagImage.src = flagPath;
-            flagImage.alt = `${object.name} flag`;
+      tile.appendChild(flagContainer);
+      tile.appendChild(label);
+      objectList.appendChild(tile);
 
-            flagContainer.appendChild(flagImage);
+      tile.addEventListener("click", () => {
+        selectedObject = object.id;
+        document.querySelectorAll("#objectList .tile").forEach(t => t.classList.remove("selected"));
+        tile.classList.add("selected");
+      });
+    });
 
-            const label = document.createElement("span");
-            label.textContent = object.name;
+    // =======================
+    // Ustawienie początkowego zaznaczenia terenu (jeśli pasuje)
+    // =======================
+    document.querySelectorAll(".tile").forEach(tile => {
+      if (tile.dataset.color === selectedColor) {
+        tile.classList.add("selected");
+      }
+    });
 
-            tile.appendChild(flagContainer);
-            tile.appendChild(label);
-            objectList.appendChild(tile);
+    // =======================
+    // Funkcje obsługujące rysowanie mapy i interakcje
+    // =======================
 
-            tile.addEventListener("click", () => {
-                selectedObject = object.id;
-                document.querySelectorAll("#objectList .tile").forEach(t => t.classList.remove("selected"));
-                tile.classList.add("selected");
-            });
-        });
+    /**
+     * Funkcja przelicza współrzędne heksagonu na piksele.
+     * Dla układu even‑r (offset dla wierszy parzystych) oraz pointy top.
+     */
+    function evenr_to_pixel(hex) {
+      const offset = hex.r % 2 === 0 ? 0.5 : 0;
+      const x = hexRadius * Math.sqrt(3) * (hex.q + offset);
+      const y = hexRadius * (3 / 2) * hex.r;
+      return { x, y };
+    }
 
+    // Funkcja do rysowania pojedynczego hexagonu
+    function drawHex(x, y, color = "#BBBBBB") {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 3 * i + Math.PI / 6;
+        const xOffset = x + Math.cos(angle) * hexRadius;
+        const yOffset = y + Math.sin(angle) * hexRadius;
+        ctx.lineTo(xOffset, yOffset);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = "#333333";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
-        document.querySelectorAll(".tile").forEach(tile => {
-            if (tile.dataset.color === selectedColor) {
-                tile.classList.add("selected");
+    // Funkcja do rysowania granic mapy
+    function drawBorder() {
+      for (let r = -1; r <= rows; r++) {
+        for (let q = -1; q <= cols; q++) {
+          if (r === -1 || r === rows || q === -1 || q === cols) {
+            const { x, y } = evenr_to_pixel({ q, r });
+            drawHex(x + canvas.width / 2 + offsetX, y + canvas.height / 2 + offsetY, "#111111");
+          }
+        }
+      }
+    }
+
+    function drawMap() {
+        // Czyścimy canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBorder();
+
+        // Iterujemy po wszystkich heksach z hexMap
+        hexMap.forEach(hex => {
+            // Obliczamy pozycję heksa w układzie świata
+            const { x, y } = evenr_to_pixel(hex);
+            // Przeliczamy na współrzędne ekranowe (przyjmujemy, że (0,0) canvasu to lewy górny róg)
+            const screenX = x + canvas.width / 2 + offsetX;
+            const screenY = y + canvas.height / 2 + offsetY;
+
+            // Sprawdzamy, czy cały heks znajduje się wewnątrz canvasu.
+            // Jeśli choć jedna krawędź dotyka lub wychodzi poza granicę, nie rysujemy go.
+            if (
+                screenX + hexRadius *2 < 0 ||
+                screenX - hexRadius *2 > canvas.width ||
+                screenY + hexRadius *2 < 0 ||
+                screenY - hexRadius *2 > canvas.height
+            ) {
+                return; // pomijamy rysowanie tego heksa
             }
-        });
 
-        function resetMap() {
-            hexMap.forEach(hex => {
-                hex.color = "#BBBBBB";
-            });
-            saveHistory();
-            drawMap();
-        }
+            // Rysujemy heksagon
+            drawHex(screenX, screenY, hex.color);
 
-        resetButton.addEventListener("click", () => {
-            resetMap();
-        });
-
-        for (let r = 0; r < rows; r++) {
-            for (let q = 0; q < cols; q++) {
-                hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
-            }
-        }
-
-        function drawHex(x, y, color = "#BBBBBB", object = 0) {
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = Math.PI / 3 * i + Math.PI / 6;
-                const xOffset = x + Math.cos(angle) * hexRadius;
-                const yOffset = y + Math.sin(angle) * hexRadius;
-                ctx.lineTo(xOffset, yOffset);
-            }
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.strokeStyle = "#333333";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-
-
-
-        function drawMap() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            hexMap.forEach(hex => {
-                const x = hex.q * hexHorizontalSpacing + (hex.r % 2 === 0 ? 0 : hexWidth / 2) + hexWidth / 2;
-                const y = hex.r * hexVerticalSpacing + hexHeight / 2;
-
-                drawHex(x, y, hex.color, hex.object);
-
-                if (hex.object) {
-                    const object = objects.find(c => c.id === hex.object);
-                    if (object) {
-                        
-                        const flagPath = "./assets/flags/" + object.name + ".svg";
-
-                        const image = getImage(flagPath);
-                        if (image) {
-                            ctx.drawImage(image, x - hexRadius / 2, y - hexRadius / 2, hexRadius, hexRadius);
-                        } else {
-                            loadImage(flagPath, (loadedImage) => {
-                                ctx.drawImage(loadedImage, x - hexRadius / 2, y - hexRadius / 2, hexRadius, hexRadius);
-                            });
-                        }
-                    }
-                }
-            });
-        }
-
-
-
-
-        function saveHistory() {
-            history.length = historyIndex + 1;
-            history.push(JSON.parse(JSON.stringify(hexMap)));
-            historyIndex++;
-        }
-
-        function undo() {
-            if (historyIndex > 0) {
-                historyIndex--;
-                hexMap.length = 0;
-                hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
-                drawMap();
-            }
-        }
-
-        function redo() {
-            if (historyIndex < history.length - 1) {
-                historyIndex++;
-                hexMap.length = 0;
-                hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
-                drawMap();
-            }
-        }
-
-        function getHexAt(x, y) {
-            for (const hex of hexMap) {
-                const hexX = hex.q * hexHorizontalSpacing + (hex.r % 2 === 0 ? 0 : hexWidth / 2) + hexWidth / 2;
-                const hexY = hex.r * hexVerticalSpacing + hexHeight / 2;
-                const dx = x - hexX;
-                const dy = y - hexY;
-                if (Math.sqrt(dx * dx + dy * dy) < hexRadius) {
-                    return hex;
-                }
-            }
-            return null;
-        }
-
-
-
-
-
-
-
-
-
-
-
-        
-        function getTerrainColorByName(name) {
-            const terrain = terrains.find(terrain => terrain.name === name);
-            return terrain ? terrain.color : null;
-        }
-
-
-        const blockedColors = [
-            getTerrainColorByName("Mountains"),
-            getTerrainColorByName("Water"),
-            getTerrainColorByName("Ocean")
-        ];
-
-        function isBlockedForObjects(hex) {
-            return blockedColors.includes(hex.color);
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-        function paintHex(hex) {
-            if (selectedTool === "bucket") {
-                if (hex.color === selectedColor) return;
-                saveHistory();
-
-                const targetColor = hex.color;
-                const queue = [hex];
-                while (queue.length) {
-                    const current = queue.pop();
-                    if (current.color === targetColor) {
-                        current.color = selectedColor;
-                        
-                        if (blockedColors.includes(selectedColor) && current.object !== 0) current.object = 0;
-
-                        const neighbors = hexMap.filter(h => {
-                            const dx = Math.abs(h.q - current.q);
-                            const dy = Math.abs(h.r - current.r);
-                            return dx <= 1 && dy <= 1;
+            // Jeśli heks posiada obiekt, rysujemy go również
+            if (hex.object) {
+                const object = objects.find(c => c.id === hex.object);
+                if (object) {
+                    const flagPath = "./assets/flags/" + object.name + ".svg";
+                    const image = getImage(flagPath);
+                    if (image) {
+                        ctx.drawImage(
+                            image,
+                            screenX - hexRadius / 2,
+                            screenY - hexRadius / 2,
+                            hexRadius,
+                            hexRadius
+                        );
+                    } else {
+                        loadImage(flagPath, (loadedImage) => {
+                            ctx.drawImage(
+                                loadedImage,
+                                screenX - hexRadius / 2,
+                                screenY - hexRadius / 2,
+                                hexRadius,
+                                hexRadius
+                            );
                         });
-
-                        queue.push(...neighbors.filter(h => h.color === targetColor));
                     }
                 }
-                drawMap();
-            } else {
-
-                saveHistory();
-
-                if (selectedTool === "pencil") {
-                    if (drawMode === "color") {
-                        if (hex.color === selectedColor) return;
-                        if (blockedColors.includes(selectedColor) && hex.object !== 0) hex.object = 0;
-                        hex.color = selectedColor;
-                    } else if (drawMode === "object") {
-                        if (!selectedObject) return;
-                        if (isBlockedForObjects(hex)) return;
-                        hex.object = selectedObject;
-                    }
-                } else if (selectedTool === "big-pencil") {
-                    if (hex.color === selectedColor) return;
-                        const isEvenRow = hex.r % 2 === 0;
-
-                        const neighborsEvenRow = [
-                            { q: hex.q, r: hex.r },
-                            { q: hex.q + 1, r: hex.r },
-                            { q: hex.q - 1, r: hex.r },
-                            { q: hex.q, r: hex.r - 1 },
-                            { q: hex.q, r: hex.r + 1 },
-                            { q: hex.q - 1, r: hex.r - 1 },
-                            { q: hex.q - 1, r: hex.r + 1 }
-                        ];
-
-                        const neighborsOddRow = [
-                            { q: hex.q, r: hex.r },
-                            { q: hex.q + 1, r: hex.r },
-                            { q: hex.q - 1, r: hex.r },
-                            { q: hex.q, r: hex.r - 1 },
-                            { q: hex.q, r: hex.r + 1 },
-                            { q: hex.q + 1, r: hex.r - 1 },
-                            { q: hex.q + 1, r: hex.r + 1 }
-                        ];
-
-                        const filledCircle = isEvenRow ? neighborsEvenRow : neighborsOddRow;
-
-                        filledCircle.forEach(neighbor => {
-                            const hexToPaint = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
-                            
-                            if (hexToPaint && hexToPaint.color !== selectedColor) {
-                                if (blockedColors.includes(selectedColor) && hexToPaint.object !== 0) hexToPaint.object = 0;
-                                hexToPaint.color = selectedColor;
-                            }
-                        });
-                } else if (selectedTool === "eraser") {
-                    if (hex.object) {
-                        hex.object = null;
-                    }
-                }
-
-                drawMap();
-            }
-        }
-
-
-        canvas.addEventListener("mousedown", event => {
-            isPainting = true;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            const hex = getHexAt(mouseX, mouseY);
-            if (hex) paintHex(hex);
-        });
-
-        canvas.addEventListener("mousemove", event => {
-            if (isPainting) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = event.clientX - rect.left;
-                const mouseY = event.clientY - rect.top;
-                const hex = getHexAt(mouseX, mouseY);
-                if (hex) paintHex(hex);
             }
         });
+    }
 
-        canvas.addEventListener("mouseup", () => { isPainting = false; });
-        canvas.addEventListener("mouseleave", () => { isPainting = false; });
 
-        const toolButtons = document.querySelectorAll(".tool-button");
-        toolButtons.forEach(button => {
-            button.addEventListener("click", () => {
-                setTool(button);
-            });
-        });
 
 
-        function setTool(button) {
-            selectedTool = button.dataset.tool;
 
-            document.querySelector("canvas").style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+    // Funkcje zapisu stanu mapy (undo/redo)
+    function saveHistory() {
+      history.length = historyIndex + 1;
+      history.push(JSON.parse(JSON.stringify(hexMap)));
+      historyIndex++;
+    }
 
-            document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("selected"));
-            button.classList.add("selected");
-        }
-
-
-
-
-
-
-
-
-
-        let title = "testowy tytuł";
-        let description = "testowy opis";
-
-        exportButton.addEventListener("click", () => {
-            const dataStr = JSON.stringify({ hexMap, title, description, cols, rows }, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "hexMap.json";
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-
-        importButton.addEventListener("click", () => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener("change", event => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const json = JSON.parse(e.target.result);
-                    cols = json.cols || cols;
-                    rows = json.rows || rows;
-                    hexMap.length = 0;
-                    hexMap.push(...json.hexMap);
-
-                    canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
-                    canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
-
-                    saveHistory();
-                    drawMap();
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        undoButton.addEventListener("click", undo);
-        redoButton.addEventListener("click", redo);
-
-        document.addEventListener("keydown", event => {
-            if (event.ctrlKey && event.key === "z") {
-                event.preventDefault();
-                undo();
-            }
-            if (event.ctrlKey && event.key === "y") {
-                event.preventDefault();
-                redo();
-            }
-        });
-
-        resizeButton.addEventListener("click", () => {
-            cols = parseInt(colsInput.value);
-            rows = parseInt(rowsInput.value);
-
-            if (rows < 5) rows = 5;
-            if (cols < 5) cols = 5;
-
-            hexMap.length = 0;
-
-            for (let r = 0; r < rows; r++) {
-                for (let q = 0; q < cols; q++) {
-                    hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
-                }
-            }
-
-            canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
-            canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
-            drawMap();
-        });
-
-
-
-
-
-
-
-
-
-
-        function updateListVisibility() {
-            const colorList = document.getElementById("terrainList");
-            const objectList = document.getElementById("objectList");
-
-            const allTools = document.querySelectorAll(".tool-button");
-            const pencilTool = document.querySelector('[data-tool="pencil"]');
-            const bigPencilTool = document.querySelector('[data-tool="big-pencil"]');
-            const bucketTool = document.querySelector('[data-tool="bucket"]');
-            const eraserTool = document.querySelector('[data-tool="eraser"]');
-
-            if (drawMode === "color") {
-                colorList.style.display = "block";
-                objectList.style.display = "none";
-
-                allTools.forEach(tool => tool.style.display = "block");
-                if (eraserTool) eraserTool.style.display = "none";
-            } else {
-                colorList.style.display = "none";
-                objectList.style.display = "block";
-
-                allTools.forEach(tool => tool.style.display = "none");
-                if (pencilTool) pencilTool.style.display = "block";
-                if (eraserTool) eraserTool.style.display = "block";
-            }
-            
-            setTool(document.querySelector(".tool-button[data-tool='pencil']"));
-        }
-
-
-
-
-
-        const switchModeButton = document.getElementById("switchModeButton");
-
-        switchModeButton.addEventListener("click", () => {
-            drawMode = drawMode === "color" ? "object" : "color";
-            switchModeButton.textContent = `Mode: ${drawMode === "color" ? "Colors" : "Objects"}`;
-            updateListVisibility();
-        });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        let imageCache = {};
-
-        function loadImage(imagePath, callback) {
-            if (imageCache[imagePath]) {
-                callback(imageCache[imagePath]);
-                return;
-            }
-
-            fetch(imagePath)
-                .then(response => response.text())
-                .then(data => {
-                    const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
-                    const url = URL.createObjectURL(svgBlob);
-                    const image = new Image();
-                    image.onload = function () {
-                        imageCache[imagePath] = image;
-                        callback(image);
-                        URL.revokeObjectURL(url);
-                    };
-                    image.src = url;
-                })
-                .catch(error => console.error("Error loading image:", error));
-        }
-
-        function getImage(imagePath) {
-            return imageCache[imagePath];
-        }
-
-
-
-
-
-
-        updateListVisibility();
-        saveHistory();
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        hexMap.length = 0;
+        hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
         drawMap();
-    </script>
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        hexMap.length = 0;
+        hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
+        drawMap();
+      }
+    }
+
+    // =======================
+    // Obsługa zdarzeń myszy i klawiatury
+    // =======================
+    let offsetX = -canvas.width * 2;
+    let offsetY = -canvas.height * 2;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      drawMap();
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    function moveMap(dx, dy) {
+      offsetX += dx;
+      offsetY += dy;
+      drawMap();
+    }
+
+    let isMouseDown = false;
+    const moveSpeed = 20;
+    canvas.addEventListener("mousedown", (event) => {
+      if (selectedTool === "move") {
+        isMouseDown = true;
+        canvas.style.cursor = `url('assets/cursors/${selectedTool}2.svg') 0 32, auto`;
+      }
+    });
+    canvas.addEventListener("mouseup", () => {
+      isMouseDown = false;
+      canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+      isPainting = false;
+    });
+    canvas.addEventListener("mouseleave", () => {
+      isMouseDown = false;
+      isPainting = false;
+    });
+    canvas.addEventListener("mousemove", (event) => {
+      if (selectedTool === "move" && isMouseDown) {
+        moveMap(event.movementX, event.movementY);
+      } else if (isPainting) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const hex = getHexAt(mouseX, mouseY);
+        if (hex) paintHex(hex);
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === 'w' || event.key === 'ArrowUp') {
+        moveMap(0, moveSpeed);
+      } else if (event.key === 'a' || event.key === 'ArrowLeft') {
+        moveMap(moveSpeed, 0);
+      } else if (event.key === 's' || event.key === 'ArrowDown') {
+        moveMap(0, -moveSpeed);
+      } else if (event.key === 'd' || event.key === 'ArrowRight') {
+        moveMap(-moveSpeed, 0);
+      }
+      if (event.ctrlKey && event.key === "z") {
+        event.preventDefault();
+        undo();
+      }
+      if (event.ctrlKey && event.key === "y") {
+        event.preventDefault();
+        redo();
+      }
+    });
+
+    // Funkcja wyznaczająca hexagon pod kursorem
+    function getHexAt(x, y) {
+      const mouseX = x;
+      const mouseY = y;
+      let foundHex = null;
+      for (const hex of hexMap) {
+        const { x: hx, y: hy } = evenr_to_pixel(hex);
+        const centerX = hx + canvas.width / 2 + offsetX;
+        const centerY = hy + canvas.height / 2 + offsetY;
+        const dx = mouseX - centerX;
+        const dy = mouseY - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < hexRadius) {
+          foundHex = hex;
+          break;
+        }
+      }
+      return foundHex;
+    }
+
+    // =======================
+    // Malowanie hexagonów – narzędzia: pencil, big-pencil, bucket, eraser
+    // =======================
+    function paintHex(hex) {
+      if (selectedTool === "bucket") {
+        if (hex.color === selectedColor) return;
+        saveHistory();
+        const targetColor = hex.color;
+        const queue = [hex];
+        while (queue.length) {
+          const current = queue.pop();
+          if (current.color === targetColor) {
+            current.color = selectedColor;
+            if (blockedColors.includes(selectedColor) && current.object !== 0) {
+              current.object = 0;
+            }
+            const neighbors = hexMap.filter(h => {
+              const dq = Math.abs(h.q - current.q);
+              const dr = Math.abs(h.r - current.r);
+              return dq <= 1 && dr <= 1;
+            });
+            queue.push(...neighbors.filter(h => h.color === targetColor));
+          }
+        }
+        drawMap();
+      } else if (selectedTool === "pencil") {
+        saveHistory();
+        if (drawMode === "color") {
+          if (hex.color === selectedColor) return;
+          if (blockedColors.includes(selectedColor) && hex.object !== 0) hex.object = 0;
+          hex.color = selectedColor;
+        } else if (drawMode === "object") {
+          if (!selectedObject) return;
+          if (isBlockedForObjects(hex)) return;
+          hex.object = selectedObject;
+        }
+        drawMap();
+      } else if (selectedTool === "big-pencil") {
+        saveHistory();
+        // Centralny hex malujemy wybranym kolorem
+        hex.color = selectedColor;
+        let neighbors;
+        if (hex.r % 2 === 0) { // wiersz parzysty – offset even‑r
+          neighbors = [
+            { q: hex.q + 1, r: hex.r },       // East
+            { q: hex.q,     r: hex.r - 1 },     // North-East
+            { q: hex.q - 1, r: hex.r - 1 },     // North-West
+            { q: hex.q - 1, r: hex.r },         // West
+            { q: hex.q - 1, r: hex.r + 1 },     // South-West
+            { q: hex.q,     r: hex.r + 1 }      // South-East
+          ];
+        } else { // wiersz nieparzysty
+          neighbors = [
+            { q: hex.q + 1, r: hex.r },       // East
+            { q: hex.q + 1, r: hex.r - 1 },     // North-East
+            { q: hex.q,     r: hex.r - 1 },     // North-West
+            { q: hex.q - 1, r: hex.r },         // West
+            { q: hex.q,     r: hex.r + 1 },     // South-West
+            { q: hex.q + 1, r: hex.r + 1 }      // South-East
+          ];
+        }
+        // Dla testów przypisujemy każdemu sąsiadowi inny kolor:
+        const testColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+        neighbors.forEach((neighbor, index) => {
+          const neighborHex = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
+          if (neighborHex) {
+            neighborHex.color = testColors[index] || selectedColor;
+          }
+        });
+        drawMap();
+      }
+    }
+
+    canvas.addEventListener("mouseup", () => { isPainting = false; });
+    canvas.addEventListener("mouseleave", () => { isPainting = false; });
+    canvas.addEventListener("mousedown", event => {
+      if (selectedTool !== "move") {
+        isPainting = true;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const hex = getHexAt(mouseX, mouseY);
+        if (hex) paintHex(hex);
+      }
+    });
+
+    // =======================
+    // Funkcje pomocnicze dla terenów i blokad obiektów
+    // =======================
+    function getTerrainColorByName(name) {
+      const terrain = terrains.find(terrain => terrain.name === name);
+      return terrain ? terrain.color : null;
+    }
+
+    const blockedColors = [
+      getTerrainColorByName("Mountains"),
+      getTerrainColorByName("Water"),
+      getTerrainColorByName("Ocean")
+    ];
+
+    function isBlockedForObjects(hex) {
+      return blockedColors.includes(hex.color);
+    }
+
+    // =======================
+    // Obsługa przycisków narzędziowych
+    // =======================
+    const toolButtons = document.querySelectorAll(".tool-button");
+    toolButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        setTool(button);
+      });
+    });
+
+    function setTool(button) {
+      selectedTool = button.dataset.tool;
+      canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+      toolButtons.forEach(btn => btn.classList.remove("selected"));
+      button.classList.add("selected");
+    }
+
+    // =======================
+    // Import / Export / Resize mapy
+    // =======================
+    let title = "testowy tytuł";
+    let description = "testowy opis";
+
+    exportButton.addEventListener("click", () => {
+      const dataStr = JSON.stringify({ hexMap, title, description, cols, rows }, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hexMap.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    importButton.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const json = JSON.parse(e.target.result);
+          cols = json.cols || cols;
+          rows = json.rows || rows;
+          hexMap.length = 0;
+          hexMap.push(...json.hexMap);
+          canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
+          canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+          saveHistory();
+          drawMap();
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    undoButton.addEventListener("click", undo);
+    redoButton.addEventListener("click", redo);
+
+    resizeButton.addEventListener("click", () => {
+      cols = parseInt(colsInput.value);
+      rows = parseInt(rowsInput.value);
+      if (cols < 5) cols = 5;
+      if (rows < 5) rows = 5;
+      if (cols > 60) cols = 60;
+      if (rows > 40) rows = 40;
+      hexMap.length = 0;
+      for (let r = 0; r < rows; r++) {
+        for (let q = 0; q < cols; q++) {
+          hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
+        }
+      }
+      canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
+      canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
+      resizeCanvas();
+      drawMap();
+    });
+
+    // =======================
+    // Aktualizacja widoczności list (terenów/obiektów) w zależności od trybu rysowania
+    // =======================
+    function updateListVisibility() {
+      const colorList = document.getElementById("terrainList");
+      const objectList = document.getElementById("objectList");
+      const allTools = document.querySelectorAll(".tool-button");
+      const moveTool = document.querySelector('[data-tool="move"]');
+      const pencilTool = document.querySelector('[data-tool="pencil"]');
+      const bigPencilTool = document.querySelector('[data-tool="big-pencil"]');
+      const bucketTool = document.querySelector('[data-tool="bucket"]');
+      const eraserTool = document.querySelector('[data-tool="eraser"]');
+
+      if (drawMode === "color") {
+        colorList.style.display = "block";
+        objectList.style.display = "none";
+        allTools.forEach(tool => tool.style.display = "block");
+        if (eraserTool) eraserTool.style.display = "none";
+      } else {
+        colorList.style.display = "none";
+        objectList.style.display = "block";
+        allTools.forEach(tool => tool.style.display = "none");
+        if (moveTool) moveTool.style.display = "block";
+        if (pencilTool) pencilTool.style.display = "block";
+        if (eraserTool) eraserTool.style.display = "block";
+      }
+      
+      setTool(document.querySelector(".tool-button[data-tool='move']"));
+    }
+
+    const switchModeButton = document.getElementById("switchModeButton");
+    switchModeButton.addEventListener("click", () => {
+      drawMode = drawMode === "color" ? "object" : "color";
+      switchModeButton.textContent = `Mode: ${drawMode === "color" ? "Colors" : "Objects"}`;
+      updateListVisibility();
+    });
+
+    // =======================
+    // Obsługa ładowania obrazków SVG z pamięcią podręczną
+    // =======================
+    let imageCache = {};
+
+    function loadImage(imagePath, callback) {
+      if (imageCache[imagePath]) {
+        callback(imageCache[imagePath]);
+        return;
+      }
+      fetch(imagePath)
+        .then(response => response.text())
+        .then(data => {
+          const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(svgBlob);
+          const image = new Image();
+          image.onload = function () {
+            imageCache[imagePath] = image;
+            callback(image);
+            URL.revokeObjectURL(url);
+          };
+          image.src = url;
+        })
+        .catch(error => console.error("Error loading image:", error));
+    }
+
+    function getImage(imagePath) {
+      return imageCache[imagePath];
+    }
+
+    // =======================
+    // Inicjalizacja mapy
+    // =======================
+    for (let r = 0; r < rows; r++) {
+      for (let q = 0; q < cols; q++) {
+        hexMap.push({ q, r, color: "#BBBBBB" });
+      }
+    }
+
+    // =======================
+    // Obsługa zmiany rozmiaru hexagonów (sterowanie zoomem mapy)
+    // =======================
+    let zoomLevel = 1;  // Początkowy poziom zoomu
+
+    function updateHexSize(newSize) {
+        hexRadius = newSize;
+        hexWidth = Math.sqrt(3) * hexRadius;
+        hexHeight = 2 * hexRadius;
+        
+        // Obliczamy odstęp (gap) – ustawiamy go jako 10% hexRadius, ale minimum 1px
+        const baseGap = Math.max(0, hexRadius * 0.1);
+        
+        // Modyfikujemy gap w zależności od poziomu zoomu
+        // Im większy zoomLevel, tym przerwa się zmniejsza, aż do zera
+        const gap = Math.max(0, baseGap * (1 / zoomLevel));  // Można też dostosować zależność z zoomLevel
+        
+        hexHorizontalSpacing = hexWidth + gap;    
+        hexVerticalSpacing = hexHeight * 0.75 + gap;
+
+        // Rysujemy mapę z nowymi ustawieniami
+        resizeCanvas();
+        drawMap();
+    }
+
+    // Funkcja do zmiany poziomu zoomu
+    function zoomIn() {
+        zoomLevel *= 1.2;
+        updateHexSize(hexRadius);  // Aktualizujemy rozmiar hexagonu po zmianie zoomu
+    }
+
+    function zoomOut() {
+        zoomLevel /= 1.2;
+        updateHexSize(hexRadius);  // Aktualizujemy rozmiar hexagonu po zmianie zoomu
+    }
+    
+    // Sterowanie sliderem
+    hexSizeInput.addEventListener("input", (event) => {
+      updateHexSize(parseInt(event.target.value));
+    });
+    
+    // Przyciski zoom in / zoom out – zmiana wartości kontrolki slidera
+    zoomInButton.addEventListener("click", () => {
+      let current = parseInt(hexSizeInput.value);
+      if (current < parseInt(hexSizeInput.max)) {
+        current++;
+        hexSizeInput.value = current;
+        updateHexSize(current);
+      }
+    });
+    
+    zoomOutButton.addEventListener("click", () => {
+      let current = parseInt(hexSizeInput.value);
+      if (current > parseInt(hexSizeInput.min)) {
+        current--;
+        hexSizeInput.value = current;
+        updateHexSize(current);
+      }
+    });
+
+
+    resizeCanvas();
+    updateListVisibility();
+    saveHistory();
+    drawMap();
+  </script>
 </body>
 </html>
