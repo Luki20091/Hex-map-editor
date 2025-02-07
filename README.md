@@ -1,6 +1,9 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
+# Version Beta 1.6:
+- [x] Optimalization
+
 # Version Beta 1.5:
 - [x] objects undo/redo support
 - [x] Zoom to center
