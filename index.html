@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Zablokowanie przybliżania/oddalania strony przez przeglądarkę -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.5</title>
+  <title>Hex Map Editor - BETA 1.6</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
   <style>
     body {
@@ -148,6 +148,7 @@
     const hexSizeInput = document.getElementById("hexSize");
     const zoomInButton = document.getElementById("zoomInButton");
     const zoomOutButton = document.getElementById("zoomOutButton");
+    const switchModeButton = document.getElementById("switchModeButton");
 
     // Definicje komórek oraz obiektów
     // W cellDefinitions nie zapisujemy pola id – identyfikatorem będzie indeks w tablicy
@@ -240,7 +241,19 @@
       return { x, y };
     }
 
-    // Rysowanie pojedynczego heksagonu
+    // Rysowanie granic mapy (opcjonalnie)
+    function drawBorder() {
+      for (let row = -1; row <= rows; row++) {
+        for (let col = -1; col <= cols; col++) {
+          if (row === -1 || row === rows || col === -1 || col === cols) {
+            const { x, y } = evenr_to_pixel({ col, row });
+            drawHex(x + canvas.width / 2 + offsetX, y + canvas.height / 2 + offsetY, "#111111");
+          }
+        }
+      }
+    }
+
+    // Rysowanie pojedynczego heksagonu (używane przy rysowaniu granic)
     function drawHex(x, y, color = "#BBBBBB") {
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
@@ -257,23 +270,15 @@
       ctx.stroke();
     }
 
-    // Rysowanie granic mapy (opcjonalnie)
-    function drawBorder() {
-      for (let row = -1; row <= rows; row++) {
-        for (let col = -1; col <= cols; col++) {
-          if (row === -1 || row === rows || col === -1 || col === cols) {
-            const { x, y } = evenr_to_pixel({ col, row });
-            drawHex(x + canvas.width / 2 + offsetX, y + canvas.height / 2 + offsetY, "#111111");
-          }
-        }
-      }
-    }
-
-    // Rysowanie całej mapy
-    function drawMap() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBorder();
+    // Optymalizowane rysowanie mapy – grupowanie heksów wg typu (cell.id)
+    function drawHexMapOptimized() {
+      // Grupowanie heksów według identyfikatora terenu
+      const terrainGroups = {};
       hexMap.forEach(cell => {
+        const terrainId = cell.id;
+        if (!terrainGroups[terrainId]) {
+          terrainGroups[terrainId] = new Path2D();
+        }
         const { x, y } = evenr_to_pixel(cell);
         const screenX = x + canvas.width / 2 + offsetX;
         const screenY = y + canvas.height / 2 + offsetY;
@@ -285,11 +290,38 @@
         ) {
           return;
         }
-        const terrain = cellDefinitions[cell.id];
-        drawHex(screenX, screenY, terrain.color);
+        const hexPath = new Path2D();
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i + Math.PI / 6;
+          const xOffset = screenX + Math.cos(angle) * hexRadius;
+          const yOffset = screenY + Math.sin(angle) * hexRadius;
+          if (i === 0) {
+            hexPath.moveTo(xOffset, yOffset);
+          } else {
+            hexPath.lineTo(xOffset, yOffset);
+          }
+        }
+        hexPath.closePath();
+        terrainGroups[terrainId].addPath(hexPath);
+      });
+
+      // Rysowanie zgrupowanych heksów
+      for (const terrainId in terrainGroups) {
+        ctx.fillStyle = cellDefinitions[terrainId].color;
+        ctx.fill(terrainGroups[terrainId]);
+        ctx.strokeStyle = "#333333";
+        ctx.lineWidth = 2;
+        ctx.stroke(terrainGroups[terrainId]);
+      }
+
+      // Rysowanie obiektów (np. flag) – pozostawiamy bez optymalizacji
+      hexMap.forEach(cell => {
         if (cell.objectId) {
           const obj = objectDefinitions[cell.objectId - 1];
           if (obj) {
+            const { x, y } = evenr_to_pixel(cell);
+            const screenX = x + canvas.width / 2 + offsetX;
+            const screenY = y + canvas.height / 2 + offsetY;
             const flagPath = "./assets/flags/" + obj.name + ".svg";
             const image = getImage(flagPath);
             if (image) {
@@ -302,6 +334,13 @@
           }
         }
       });
+    }
+
+    // Funkcja rysująca mapę – czyścimy canvas, rysujemy granice, a następnie heksy zoptymalizowanym sposobem
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBorder();
+      drawHexMapOptimized();
     }
 
     // Obsługa historii (undo/redo)
@@ -389,7 +428,6 @@
         if (cell) paintCell(cell);
       }
     });
-
 
     resetButton.addEventListener("click", initHexMap);
     undoButton.addEventListener("click", undo);
