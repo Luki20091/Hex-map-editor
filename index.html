@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Zablokowanie przybliżania/oddalania strony przez przeglądarkę -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.4</title>
+  <title>Hex Map Editor - BETA 1.4.1</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
   <style>
     body {
@@ -270,12 +270,12 @@
 
     /**
      * Funkcja przelicza współrzędne heksagonu na piksele.
-     * Dla układu even‑r (offset dla wierszy parzystych) oraz pointy top.
+     * Używamy teraz właściwości col oraz row.
      */
     function evenr_to_pixel(hex) {
-      const offset = hex.r % 2 === 0 ? 0.5 : 0;
-      const x = hexRadius * Math.sqrt(3) * (hex.q + offset);
-      const y = hexRadius * (3 / 2) * hex.r;
+      const offset = hex.row % 2 === 0 ? 0.5 : 0;
+      const x = hexRadius * Math.sqrt(3) * (hex.col + offset);
+      const y = hexRadius * (3 / 2) * hex.row;
       return { x, y };
     }
 
@@ -298,10 +298,10 @@
 
     // Funkcja do rysowania granic mapy
     function drawBorder() {
-      for (let r = -1; r <= rows; r++) {
-        for (let q = -1; q <= cols; q++) {
-          if (r === -1 || r === rows || q === -1 || q === cols) {
-            const { x, y } = evenr_to_pixel({ q, r });
+      for (let row = -1; row <= rows; row++) {
+        for (let col = -1; col <= cols; col++) {
+          if (row === -1 || row === rows || col === -1 || col === cols) {
+            const { x, y } = evenr_to_pixel({ col, row });
             drawHex(x + canvas.width / 2 + offsetX, y + canvas.height / 2 + offsetY, "#111111");
           }
         }
@@ -315,27 +315,21 @@
 
         // Iterujemy po wszystkich heksach z hexMap
         hexMap.forEach(hex => {
-            // Obliczamy pozycję heksa w układzie świata
             const { x, y } = evenr_to_pixel(hex);
-            // Przeliczamy na współrzędne ekranowe (przyjmujemy, że (0,0) canvasu to lewy górny róg)
             const screenX = x + canvas.width / 2 + offsetX;
             const screenY = y + canvas.height / 2 + offsetY;
 
-            // Sprawdzamy, czy cały heks znajduje się wewnątrz canvasu.
-            // Jeśli choć jedna krawędź dotyka lub wychodzi poza granicę, nie rysujemy go.
             if (
                 screenX + hexRadius *2 < 0 ||
                 screenX - hexRadius *2 > canvas.width ||
                 screenY + hexRadius *2 < 0 ||
                 screenY - hexRadius *2 > canvas.height
             ) {
-                return; // pomijamy rysowanie tego heksa
+                return;
             }
 
-            // Rysujemy heksagon
             drawHex(screenX, screenY, hex.color);
 
-            // Jeśli heks posiada obiekt, rysujemy go również
             if (hex.object) {
                 const object = objects.find(c => c.id === hex.object);
                 if (object) {
@@ -364,10 +358,6 @@
             }
         });
     }
-
-
-
-
 
     // Funkcje zapisu stanu mapy (undo/redo)
     function saveHistory() {
@@ -489,7 +479,6 @@
     function paintHex(hex) {
       if (selectedTool === "bucket") {
         if (hex.color === selectedColor) return;
-        saveHistory();
         const targetColor = hex.color;
         const queue = [hex];
         while (queue.length) {
@@ -500,16 +489,16 @@
               current.object = 0;
             }
             const neighbors = hexMap.filter(h => {
-              const dq = Math.abs(h.q - current.q);
-              const dr = Math.abs(h.r - current.r);
-              return dq <= 1 && dr <= 1;
+              const dcol = Math.abs(h.col - current.col);
+              const drow = Math.abs(h.row - current.row);
+              return dcol <= 1 && drow <= 1;
             });
             queue.push(...neighbors.filter(h => h.color === targetColor));
           }
         }
+        saveHistory();
         drawMap();
       } else if (selectedTool === "pencil") {
-        saveHistory();
         if (drawMode === "color") {
           if (hex.color === selectedColor) return;
           if (blockedColors.includes(selectedColor) && hex.object !== 0) hex.object = 0;
@@ -519,39 +508,40 @@
           if (isBlockedForObjects(hex)) return;
           hex.object = selectedObject;
         }
+        saveHistory();
         drawMap();
       } else if (selectedTool === "big-pencil") {
-        saveHistory();
         // Centralny hex malujemy wybranym kolorem
         hex.color = selectedColor;
         let neighbors;
-        if (hex.r % 2 === 0) { // wiersz parzysty – offset even‑r
+        if (hex.row % 2 === 0) { // wiersz parzysty
           neighbors = [
-            { q: hex.q + 1, r: hex.r },       // East
-            { q: hex.q,     r: hex.r - 1 },     // North-East
-            { q: hex.q - 1, r: hex.r - 1 },     // North-West
-            { q: hex.q - 1, r: hex.r },         // West
-            { q: hex.q - 1, r: hex.r + 1 },     // South-West
-            { q: hex.q,     r: hex.r + 1 }      // South-East
+            { col: hex.col + 1, row: hex.row },
+            { col: hex.col + 1, row: hex.row - 1 },
+            { col: hex.col,     row: hex.row - 1 },
+            { col: hex.col - 1, row: hex.row },
+            { col: hex.col,     row: hex.row + 1 },
+            { col: hex.col + 1, row: hex.row + 1 }
           ];
         } else { // wiersz nieparzysty
           neighbors = [
-            { q: hex.q + 1, r: hex.r },       // East
-            { q: hex.q + 1, r: hex.r - 1 },     // North-East
-            { q: hex.q,     r: hex.r - 1 },     // North-West
-            { q: hex.q - 1, r: hex.r },         // West
-            { q: hex.q,     r: hex.r + 1 },     // South-West
-            { q: hex.q + 1, r: hex.r + 1 }      // South-East
+            { col: hex.col + 1, row: hex.row },
+            { col: hex.col,     row: hex.row - 1 },
+            { col: hex.col - 1, row: hex.row - 1 },
+            { col: hex.col - 1, row: hex.row },
+            { col: hex.col - 1, row: hex.row + 1 },
+            { col: hex.col,     row: hex.row + 1 }
           ];
         }
-        // Dla testów przypisujemy każdemu sąsiadowi inny kolor:
-        const testColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+        //const testColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
         neighbors.forEach((neighbor, index) => {
-          const neighborHex = hexMap.find(h => h.q === neighbor.q && h.r === neighbor.r);
+          const neighborHex = hexMap.find(h => h.col === neighbor.col && h.row === neighbor.row);
           if (neighborHex) {
-            neighborHex.color = testColors[index] || selectedColor;
+            //neighborHex.color = testColors[index] || selectedColor;
+            neighborHex.color = selectedColor;
           }
         });
+        saveHistory();
         drawMap();
       }
     }
@@ -611,6 +601,8 @@
     let description = "testowy opis";
 
     exportButton.addEventListener("click", () => {
+      // Eksportujemy hexMap, tytuł, opis, cols oraz rows.
+      // Każdy hex zawiera właściwości: col, row, color oraz object.
       const dataStr = JSON.stringify({ hexMap, title, description, cols, rows }, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -634,10 +626,27 @@
           cols = json.cols || cols;
           rows = json.rows || rows;
           hexMap.length = 0;
-          hexMap.push(...json.hexMap);
+          json.hexMap.forEach(hex => {
+            // Jeśli importowany hex ma pola q oraz r, konwertujemy je na col oraz row
+            if (hex.col === undefined && hex.q !== undefined) {
+              hex.col = hex.q;
+              hex.row = hex.r;
+            }
+            if (hex.col === undefined) {
+              hex.col = 0;
+            }
+            if (hex.row === undefined) {
+              hex.row = 0;
+            }
+            if (hex.object === undefined) {
+              hex.object = 0;
+            }
+            hexMap.push(hex);
+          });
           canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
           canvas.height = rows * hexVerticalSpacing + hexHeight / 2;
           saveHistory();
+          resizeCanvas();
           drawMap();
         };
         reader.readAsText(file);
@@ -655,9 +664,9 @@
       if (cols > 60) cols = 60;
       if (rows > 40) rows = 40;
       hexMap.length = 0;
-      for (let r = 0; r < rows; r++) {
-        for (let q = 0; q < cols; q++) {
-          hexMap.push({ q, r, s: -q - r, color: "#BBBBBB" });
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          hexMap.push({ col, row, color: "#BBBBBB", object: 0 });
         }
       }
       canvas.width = cols * hexHorizontalSpacing + hexWidth / 2;
@@ -734,11 +743,11 @@
     }
 
     // =======================
-    // Inicjalizacja mapy
+    // Inicjalizacja mapy – używamy właściwości col i row
     // =======================
-    for (let r = 0; r < rows; r++) {
-      for (let q = 0; q < cols; q++) {
-        hexMap.push({ q, r, color: "#BBBBBB" });
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        hexMap.push({ col, row, color: "#BBBBBB", object: 0 });
       }
     }
 
@@ -752,38 +761,31 @@
         hexWidth = Math.sqrt(3) * hexRadius;
         hexHeight = 2 * hexRadius;
         
-        // Obliczamy odstęp (gap) – ustawiamy go jako 10% hexRadius, ale minimum 1px
+        // Obliczamy odstęp (gap)
         const baseGap = Math.max(0, hexRadius * 0.1);
-        
-        // Modyfikujemy gap w zależności od poziomu zoomu
-        // Im większy zoomLevel, tym przerwa się zmniejsza, aż do zera
-        const gap = Math.max(0, baseGap * (1 / zoomLevel));  // Można też dostosować zależność z zoomLevel
+        const gap = Math.max(0, baseGap * (1 / zoomLevel));
         
         hexHorizontalSpacing = hexWidth + gap;    
         hexVerticalSpacing = hexHeight * 0.75 + gap;
 
-        // Rysujemy mapę z nowymi ustawieniami
         resizeCanvas();
         drawMap();
     }
 
-    // Funkcja do zmiany poziomu zoomu
     function zoomIn() {
         zoomLevel *= 1.2;
-        updateHexSize(hexRadius);  // Aktualizujemy rozmiar hexagonu po zmianie zoomu
+        updateHexSize(hexRadius);
     }
 
     function zoomOut() {
         zoomLevel /= 1.2;
-        updateHexSize(hexRadius);  // Aktualizujemy rozmiar hexagonu po zmianie zoomu
+        updateHexSize(hexRadius);
     }
     
-    // Sterowanie sliderem
     hexSizeInput.addEventListener("input", (event) => {
       updateHexSize(parseInt(event.target.value));
     });
     
-    // Przyciski zoom in / zoom out – zmiana wartości kontrolki slidera
     zoomInButton.addEventListener("click", () => {
       let current = parseInt(hexSizeInput.value);
       if (current < parseInt(hexSizeInput.max)) {
@@ -801,7 +803,6 @@
         updateHexSize(current);
       }
     });
-
 
     resizeCanvas();
     updateListVisibility();
