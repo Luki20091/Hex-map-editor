@@ -2,9 +2,9 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta 1.5:
-- [ ] objects undo/redo support
-- [ ] Zoom to center
-- [ ] Move limits
+- [x] objects undo/redo support
+- [x] Zoom to center
+- [x] Move limits
 
 # Version Beta 1.4:
 - [x] Move tool (WSAD + mouse buttons)
