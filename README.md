@@ -2,7 +2,7 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta 1.5:
-- [ ] Units and castles + undo/redo update for supports that
+- [ ] objects undo/redo support
 - [ ] Zoom to center
 - [ ] Move limits
 
