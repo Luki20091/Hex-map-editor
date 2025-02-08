@@ -1,8 +1,8 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
-# Version Beta 1.6.1:
-- [x] Optimalization 2 => max map size 1000x700
+# Version Beta 1.7:
+- [ ] 
 
 # Version Beta 1.6:
 - [x] Optimalization => max map size 300x200
