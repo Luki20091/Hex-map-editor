@@ -2,7 +2,7 @@
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
 # Version Beta 1.6:
-- [x] Optimalization
+- [x] Optimalization => max resize 300x200
 
 # Version Beta 1.5:
 - [x] objects undo/redo support
