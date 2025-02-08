@@ -4,6 +4,7 @@
 # Version Beta 1.7:
 - [x] Big pencil size and radnomize settings
 - [x] Testing better styling and layout
+- [x] Export form - tile and description
 - [x] WSAD - off
 
 # Version Beta 1.6:
