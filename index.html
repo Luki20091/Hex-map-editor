@@ -2,156 +2,384 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Zablokowanie przybliżania/oddalania strony przez przeglądarkę -->
+  <!-- Disable zooming on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.6</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" type="text/javascript"></script>
+  <title>Hex Map Editor - BETA 1.7</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous"></script>
   <style>
+    /* Define root variables for our color palette and common sizes */
+    :root {
+      --bg-color: #080b17;
+      --panel-bg: #1c1f2e;
+      --accent-color: #3498db;
+      --accent-hover: #2980b9;
+      --text-color: #ecf0f1;
+      --secondary-text: #bdc3c7;
+      --border-color: #333333;
+      --hover-bg: #2c3e50;
+    }
+
+    /* Global Styles */
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      display: flex;
       overflow: hidden;
-      -webkit-user-select: none;
-      -moz-user-select: none;
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
     }
     canvas {
       display: block;
-      background-color: #111111;
-      cursor: url('assets/cursors/pencil.svg') 0 32, auto;
+      background-color: var(--bg-color);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
     }
-    #controls {
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px;
-      border-radius: 8px;
-      width: 240px;
-      overflow-y: auto;
-      max-height: 100vh;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+
+    /* Left Sidebar: Tools (vertically centered) */
+    #leftSidebar {
       position: fixed;
-    }
-    .tile {
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 60px;
+      background-color: var(--panel-bg);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      margin: 5px 0;
+      padding: 10px 0;
+      z-index: 10;
+    }
+    #leftSidebar .tool-button {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 24px;
+      margin: 10px 0;
       cursor: pointer;
+    }
+    #leftSidebar .tool-button.selected {
+      color: var(--accent-color);
+    }
+
+    /* Top Menu: Map Settings & Export Form (arranged horizontally) */
+    #topLeft {
+      position: fixed;
+      top: 10px;
+      left: 60px;
+      right: 320px; /* leaves room for the right sidebar */
+      background-color: var(--panel-bg);
+      padding: 10px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-radius: 4px;
+    }
+    /* First row: Map settings arranged left-to-right */
+    #topLeft .map-settings {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+    #topLeft .map-settings .setting-item {
+      display: flex;
+      flex-direction: column;
+    }
+    #topLeft .map-settings .setting-item label {
+      font-size: 12px;
+      color: var(--secondary-text);
+      margin-bottom: 3px;
+    }
+    #topLeft .map-settings .setting-item input[type="number"],
+    #topLeft .map-settings .setting-item input[type="text"] {
       padding: 5px;
       border-radius: 4px;
-      transition: ease-in-out background 0.2s;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-color);
+      color: var(--text-color);
     }
-    .tile:hover {
-      background: rgba(0, 0, 0, 0.1);
-    }
-    .tile.selected {
-      background: rgba(0, 123, 255, 0.2);
-    }
-    .tile-color {
-      height: 24px;
-      margin-right: 10px;
-      aspect-ratio: 1;
-      clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
-    }
-    .tile-flag img {
-      height: 24px;
-      margin-right: 10px;
-    }
-    button {
-      display: block;
-      margin: 10px 0;
+    #topLeft .map-settings .setting-item button {
       padding: 5px 10px;
       border: none;
-      background: #007BFF;
-      color: #fff;
-      cursor: pointer;
       border-radius: 4px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .tool-button {
-      margin: 5px 0;
-      padding: 10px;
-      border: none;
-      background: #007BFF;
-      color: #fff;
+      background-color: var(--accent-color);
+      color: var(--text-color);
       cursor: pointer;
-      border-radius: 4px;
-      display: block;
-      font-size: 20px;
-      text-align: center;
     }
-    .tool-button.selected {
-      background: #0056b3;
+    #topLeft .map-settings .setting-item button:hover {
+      background-color: var(--accent-hover);
     }
-    .input-group {
-      margin: 10px 0;
+    /* Second row: Export form */
+    #topLeft .export-form {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    input[type="number"],
-    input[type="range"] {
-      width: 100%;
+    #topLeft .export-form .setting-item {
+      display: flex;
+      flex-direction: column;
+    }
+    #topLeft .export-form .setting-item label {
+      font-size: 12px;
+      color: var(--secondary-text);
+      margin-bottom: 3px;
+    }
+    #topLeft .export-form .setting-item input[type="text"] {
       padding: 5px;
       border-radius: 4px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+    #topLeft .export-form .setting-item button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--accent-color);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+    #topLeft .export-form .setting-item button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    /* Right Sidebar: Tile Palette (vertically centered) */
+    #rightSidebar {
+      position: fixed;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      width: 300px;
+      background-color: var(--panel-bg);
+      padding: 10px;
+      z-index: 10;
+      overflow-y: auto;
+      border-radius: 4px 0 0 4px;
+    }
+    #rightSidebar button {
+      background-color: var(--accent-color);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-color);
+      padding: 5px 10px;
+      width: 100%;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #rightSidebar button:hover {
+      background-color: var(--accent-hover);
+    }
+    #rightSidebar .tile {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      margin: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #rightSidebar .tile .tile-color {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
+    }
+    #rightSidebar .tile:hover {
+      background-color: var(--hover-bg);
+    }
+    #rightSidebar .tile.selected {
+      background-color: var(--accent-color);
+    }
+    /* Adjust SVG size in objects menu */
+    #rightSidebar .tile .tile-flag img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      margin-right: 10px;
+    }
+
+    /* Bottom Left Panel: Big Pencil Slider */
+    #bottomLeft {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      z-index: 10;
+      background-color: var(--panel-bg);
+      padding: 10px;
+      border-radius: 4px;
+    }
+    #bottomLeft .slider-container label {
+      font-size: 12px;
+      color: var(--secondary-text);
+      margin-bottom: 3px;
+    }
+    #bottomLeft .slider-container input[type="range"] {
+      width: 150px;
+    }
+
+    /* Bottom Center Panel: Zoom Controls */
+    #bottomCenter {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background-color: var(--panel-bg);
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #bottomCenter button {
+      background-color: var(--accent-color);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-color);
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    #bottomCenter button:hover {
+      background-color: var(--accent-hover);
+    }
+    #bottomCenter input[type="range"] {
+      width: 200px;
+    }
+
+    /* Bottom Right Panel: Undo / Redo */
+    #bottomRight {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+      background-color: var(--panel-bg);
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      gap: 10px;
+    }
+    #bottomRight button {
+      background-color: var(--accent-color);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-color);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #bottomRight button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    input, button {
+      font-family: inherit;
     }
   </style>
 </head>
 <body>
+  <!-- Main canvas for drawing the hex map -->
   <canvas id="hexCanvas"></canvas>
-  <div id="controls">
-    <button id="switchModeButton">Mode: Colors</button>
+
+  <!-- Left Sidebar: Tools -->
+  <div id="leftSidebar">
+    <button id="tool-move" class="tool-button" data-tool="move" title="Move (Pan)"><i class="fas fa-arrows-alt"></i></button>
+    <button id="tool-pencil" class="tool-button" data-tool="pencil" title="Pencil (Paint)"><i class="fas fa-pencil-alt"></i></button>
+    <button id="tool-big-pencil" class="tool-button" data-tool="big-pencil" title="Big Pencil (Area Paint)"><i class="fas fa-paint-brush"></i></button>
+    <button id="tool-bucket" class="tool-button" data-tool="bucket" title="Bucket (Fill)"><i class="fas fa-fill-drip"></i></button>
+    <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)"><i class="fas fa-eraser"></i></button>
+  </div>
+
+  <!-- Top Left Panel: Map Settings & Export Form -->
+  <div id="topLeft">
+    <div class="map-settings">
+      <div class="setting-item">
+        <label for="cols"><i class="fas fa-columns"></i> Columns</label>
+        <input type="number" id="cols" value="29" min="5" max="200">
+      </div>
+      <div class="setting-item">
+        <label for="rows"><i class="fas fa-th"></i> Rows</label>
+        <input type="number" id="rows" value="17" min="5" max="150">
+      </div>
+      <div class="setting-item">
+        <button id="resizeButton" title="Resize Map"><i class="fas fa-expand"></i> Resize</button>
+      </div>
+      <div class="setting-item">
+        <button id="resetButton" title="Reset Map"><i class="fas fa-sync-alt"></i> Reset</button>
+      </div>
+    </div>
+    <div class="export-form">
+      <div class="setting-item">
+        <label for="mapTitle"><i class="fas fa-font"></i> Title</label>
+        <input type="text" id="mapTitle" placeholder="Map title">
+      </div>
+      <div class="setting-item">
+        <label for="mapDescription"><i class="fas fa-info-circle"></i> Description</label>
+        <input type="text" id="mapDescription" placeholder="Map description">
+      </div>
+      <div class="setting-item">
+        <button id="exportButton" title="Export to JSON"><i class="fas fa-file-export"></i> Export</button>
+        <button id="importButton" title="Import from JSON"><i class="fas fa-file-import"></i> Import</button>
+        <input type="file" id="fileInput" style="display:none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar: Tile Palette (Colors and Objects) -->
+  <div id="rightSidebar">
+    <button id="switchModeButton" title="Switch between Colors and Objects"><i class="fas fa-exchange-alt"></i> Mode: Colors</button>
     <div id="terrainList"></div>
     <div id="objectList" style="display:none;"></div>
-    <button class="tool-button selected" data-tool="move"><i class="fas fa-arrows-alt"></i></button>
-    <button class="tool-button" data-tool="pencil"><i class="fas fa-pencil"></i></button>
-    <button class="tool-button" data-tool="big-pencil"><i class="fa-solid fa-paintbrush"></i></button>
-    <button class="tool-button" data-tool="bucket"><i class="fa-solid fa-fill-drip fa-flip-horizontal"></i></button>
-    <button class="tool-button" data-tool="eraser"><i class="fa-solid fa-eraser"></i></button>
-    <button id="resetButton">Reset Map</button>
-    <button id="exportButton">Export to JSON</button>
-    <button id="importButton">Import from JSON</button>
-    <button id="undoButton">Undo</button>
-    <button id="redoButton">Redo</button>
-    <input type="file" id="fileInput" style="display:none;">
-    <div class="input-group">
-      <label for="cols">Columns: </label>
-      <input type="number" id="cols" value="29" min="5" max="300" />
+  </div>
+
+  <!-- Bottom Left Panel: Big Pencil Slider -->
+  <div id="bottomLeft">
+    <div class="slider-container">
+      <label for="bigBrushSize"><i class="fas fa-brush"></i> Big Brush Size</label>
+      <input type="range" id="bigBrushSize" min="1" max="10" value="1">
     </div>
-    <div class="input-group">
-      <label for="rows">Rows: </label>
-      <input type="number" id="rows" value="17" min="5" max="200" />
-    </div>
-    <div class="input-group">
-      <label for="hexSize">Hex Size (Zoom):</label>
-      <input type="range" id="hexSize" min="3" max="50" value="25">
-    </div>
-    <button id="zoomInButton">Zoom In</button>
-    <button id="zoomOutButton">Zoom Out</button>
-    <button id="resizeButton">Resize Map</button>
+  </div>
+
+  <!-- Bottom Center Panel: Zoom Controls -->
+  <div id="bottomCenter">
+    <button id="zoomOutButton" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+    <input type="range" id="hexSize" min="2" max="50" value="25">
+    <button id="zoomInButton" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+  </div>
+
+  <!-- Bottom Right Panel: Undo / Redo -->
+  <div id="bottomRight">
+    <button id="undoButton" title="Undo"><i class="fas fa-undo"></i></button>
+    <button id="redoButton" title="Redo"><i class="fas fa-redo"></i></button>
   </div>
 
   <script>
-    // Global deklaracje
+    /* =================== GLOBAL DECLARATIONS =================== */
     const canvas = document.getElementById('hexCanvas');
     const ctx = canvas.getContext('2d');
+    // Export/Import and map title/description elements from the top menu
     const exportButton = document.getElementById('exportButton');
     const importButton = document.getElementById('importButton');
     const fileInput = document.getElementById('fileInput');
-    const terrainList = document.getElementById('terrainList');
-    const objectList = document.getElementById('objectList');
-    const undoButton = document.getElementById('undoButton');
-    const redoButton = document.getElementById('redoButton');
-    const resetButton = document.getElementById('resetButton');
-    const resizeButton = document.getElementById('resizeButton');
     const colsInput = document.getElementById('cols');
     const rowsInput = document.getElementById('rows');
     const hexSizeInput = document.getElementById('hexSize');
     const zoomInButton = document.getElementById('zoomInButton');
     const zoomOutButton = document.getElementById('zoomOutButton');
+    const resetButton = document.getElementById('resetButton');
+    const resizeButton = document.getElementById('resizeButton');
     const switchModeButton = document.getElementById('switchModeButton');
+    const bigBrushSizeInput = document.getElementById('bigBrushSize');
+    const mapTitleInput = document.getElementById('mapTitle');
+    const mapDescriptionInput = document.getElementById('mapDescription');
 
-    // Definicje komórek i obiektów
+    // Cell and Object Definitions
     const cellDefinitions = [
-      { name: "Default", color: "#BBBBBB" },
+      { name: "Ocean", color: "#325ddb" },
+      { name: "Water", color: "#3fabff" },
       { name: "Desert", color: "#FFD700" },
       { name: "Cactus Desert", color: "#CD853F" },
       { name: "Dunes", color: "#F0E68C" },
@@ -164,9 +392,7 @@
       { name: "Highlands", color: "#6B8E23" },
       { name: "Snowfield", color: "#FFFFFF" },
       { name: "Snowy Forest", color: "#87ddEB" },
-      { name: "Glacier", color: "#4682B4" },
-      { name: "Water", color: "#3fabff" },
-      { name: "Ocean", color: "#325ddb" }
+      { name: "Glacier", color: "#4682B4" }
     ];
     const objectDefinitions = [
       { name: "Poland" },
@@ -181,7 +407,7 @@
     let historyIndex = -1;
     let cols = 29;
     let rows = 17;
-    const hexMap = []; // Każda komórka: { col, row, id, objectId }
+    const hexMap = []; // Each cell: { col, row, id, objectId }
     let hexRadius = parseInt(hexSizeInput.value);
     let hexWidth = Math.sqrt(3) * hexRadius;
     let hexHeight = 2 * hexRadius;
@@ -197,80 +423,34 @@
     let title = "testowy tytuł";
     let description = "testowy opis";
 
-    // Zmienne dla chunkowania
-    const CHUNK_SIZE = 10; // liczba komórek w poziomie/wierszu chunka
-    let chunkCache = new Map(); // Map: klucz chunka → { canvas, minX, minY, width, height }
-    let mapDirty = true;      // flaga informująca, że mapa (chunkCache) wymaga przeliczenia
+    // =================== BIG PENCIL SIZE SETUP ===================
+    let bigBrushSize = parseInt(bigBrushSizeInput.value);
+    bigBrushSizeInput.addEventListener('input', (event) => {
+      bigBrushSize = parseInt(event.target.value);
+    });
 
-    // Ustawienie rozmiaru canvasu i centrowanie mapy
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      recalcCenterOffsets();
-      drawMap();
-    }
-    window.addEventListener('resize', resizeCanvas);
+    // =================== CHUNKING VARIABLES ===================
+    let chunkSize = 10; 
+    let chunkCache = new Map();
+    let superChunkCache = new Map();
+    let mapDirty = true;
+    let dirtyChunks = new Set();
 
-    // Oblicz offsety, aby środek mapy (wszystkich komórek) był na środku canvasu
-    function recalcCenterOffsets() {
-      const bounds = getMapBounds();
-      const mapCenterX = (bounds.minX + bounds.maxX) / 2;
-      const mapCenterY = (bounds.minY + bounds.maxY) / 2;
-      offsetX = -mapCenterX;
-      offsetY = -mapCenterY;
+    /* ---------------------------------------------------------------------------
+     * Group 2: Chunking Functions
+     * Functions:
+     *   - computeChunkSize
+     *   - getChunkKey
+     *   - updateChunk
+     *   - updateSuperChunks
+     * ------------------------------------------------------------------------- */
+    function computeChunkSize() {
+      const totalCells = cols * rows;
+      return totalCells > 500 ? 20 : 10;
     }
-    // Oblicza granice mapy na podstawie hexMap
-    function getMapBounds() {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      hexMap.forEach(cell => {
-        const pos = evenr_to_pixel(cell);
-        if (pos.x < minX) minX = pos.x;
-        if (pos.x > maxX) maxX = pos.x;
-        if (pos.y < minY) minY = pos.y;
-        if (pos.y > maxY) maxY = pos.y;
-      });
-      return { minX, maxX, minY, maxY };
-    }
-    // Konwersja even-r na współrzędne pikseli
-    function evenr_to_pixel(cell) {
-      const off = cell.row % 2 === 0 ? 0.5 : 0;
-      const x = hexRadius * Math.sqrt(3) * (cell.col + off);
-      const y = hexRadius * (3/2) * cell.row;
-      return { x, y };
-    }
-    // Rysowanie granic mapy
-    function drawBorder() {
-      for (let row = -1; row <= rows; row++) {
-        for (let col = -1; col <= cols; col++) {
-          if (row === -1 || row === rows || col === -1 || col === cols) {
-            const pos = evenr_to_pixel({ col, row });
-            drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, '#111111');
-          }
-        }
-      }
-    }
-    // Rysowanie pojedynczego heksagonu (domyślnie na głównym canvasie)
-    function drawHex(x, y, color = '#BBBBBB', context = ctx) {
-      context.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = Math.PI / 3 * i + Math.PI / 6;
-        const xOffset = x + Math.cos(angle) * hexRadius;
-        const yOffset = y + Math.sin(angle) * hexRadius;
-        context.lineTo(xOffset, yOffset);
-      }
-      context.closePath();
-      context.fillStyle = color;
-      context.fill();
-      context.strokeStyle = '#333333';
-      context.lineWidth = 2;
-      context.stroke();
-    }
-
-    // Funkcje chunkowania
     function getChunkKey(col, row) {
-      return Math.floor(col / CHUNK_SIZE) + '_' + Math.floor(row / CHUNK_SIZE);
+      return Math.floor(col / chunkSize) + '_' + Math.floor(row / chunkSize);
     }
-    // Dla danego chunka (lista komórek) tworzymy offscreen canvas, na którym rysujemy heksy grupując je wg typu (Path2D)
     function updateChunk(chunkKey, chunkCells) {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       chunkCells.forEach(cell => {
@@ -280,7 +460,6 @@
         if (pos.y < minY) minY = pos.y;
         if (pos.y > maxY) maxY = pos.y;
       });
-      // Rozszerzamy granice, aby uwzględnić całą figurę heksagonu
       minX -= hexRadius;
       minY -= hexRadius;
       maxX += hexRadius;
@@ -291,7 +470,6 @@
       offscreen.width = width;
       offscreen.height = height;
       const offCtx = offscreen.getContext('2d');
-      // Grupowanie heksów wg identyfikatora terenu
       const terrainGroups = {};
       chunkCells.forEach(cell => {
         const pos = evenr_to_pixel(cell);
@@ -312,23 +490,133 @@
         hexPath.closePath();
         terrainGroups[terrainId].addPath(hexPath);
       });
+      // Retrieve border color from root variables
+      const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#333333';
       for (const terrainId in terrainGroups) {
         offCtx.fillStyle = cellDefinitions[terrainId].color;
         offCtx.fill(terrainGroups[terrainId]);
-        offCtx.strokeStyle = '#333333';
+        offCtx.strokeStyle = borderColor;
         offCtx.lineWidth = 2;
         offCtx.stroke(terrainGroups[terrainId]);
       }
-      // Zapisujemy offscreen canvas wraz z pozycją (minX, minY) w układzie świata
       chunkCache.set(chunkKey, { canvas: offscreen, minX: minX, minY: minY, width: width, height: height });
     }
-    // Rysowanie mapy – wykorzystanie cache chunków, frustum culling i offscreen canvas
+    function updateSuperChunks() {
+      const groupingFactor = 2;
+      const tempSuper = new Map();
+      chunkCache.forEach((smallChunk, key) => {
+        const parts = key.split('_');
+        const a = parseInt(parts[0]);
+        const b = parseInt(parts[1]);
+        const superKey = Math.floor(a / groupingFactor) + '_' + Math.floor(b / groupingFactor);
+        if (!tempSuper.has(superKey)) {
+          tempSuper.set(superKey, []);
+        }
+        tempSuper.get(superKey).push({ key, smallChunk });
+      });
+      const newSuperChunkCache = new Map();
+      tempSuper.forEach((group, superKey) => {
+        let groupMinX = Infinity, groupMinY = Infinity, groupMaxX = -Infinity, groupMaxY = -Infinity;
+        group.forEach(item => {
+          const sc = item.smallChunk;
+          if (sc.minX < groupMinX) groupMinX = sc.minX;
+          if (sc.minY < groupMinY) groupMinY = sc.minY;
+          if (sc.minX + sc.width > groupMaxX) groupMaxX = sc.minX + sc.width;
+          if (sc.minY + sc.height > groupMaxY) groupMaxY = sc.minY + sc.height;
+        });
+        const groupWidth = groupMaxX - groupMinX;
+        const groupHeight = groupMaxY - groupMinY;
+        const superCanvas = document.createElement('canvas');
+        superCanvas.width = groupWidth;
+        superCanvas.height = groupHeight;
+        const superCtx = superCanvas.getContext('2d');
+        group.forEach(item => {
+          const sc = item.smallChunk;
+          superCtx.drawImage(sc.canvas, sc.minX - groupMinX, sc.minY - groupMinY);
+        });
+        newSuperChunkCache.set(superKey, { canvas: superCanvas, minX: groupMinX, minY: groupMinY, width: groupWidth, height: groupHeight });
+      });
+      superChunkCache = newSuperChunkCache;
+    }
+
+    /* ---------------------------------------------------------------------------
+     * Group 1: Canvas and Offset Setup Functions
+     * Functions:
+     *   - resizeCanvas
+     *   - recalcCenterOffsets
+     *   - getMapBounds
+     *   - evenr_to_pixel
+     *   - drawBorder
+     *   - drawHex
+     * ------------------------------------------------------------------------- */
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      recalcCenterOffsets();
+      drawMap();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    function recalcCenterOffsets() {
+      const bounds = getMapBounds();
+      const mapCenterX = (bounds.minX + bounds.maxX) / 2;
+      const mapCenterY = (bounds.minY + bounds.maxY) / 2;
+      offsetX = -mapCenterX;
+      offsetY = -mapCenterY;
+    }
+    function getMapBounds() {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      hexMap.forEach(cell => {
+        const pos = evenr_to_pixel(cell);
+        if (pos.x < minX) minX = pos.x;
+        if (pos.x > maxX) maxX = pos.x;
+        if (pos.y < minY) minY = pos.y;
+        if (pos.y > maxY) maxY = pos.y;
+      });
+      return { minX, maxX, minY, maxY };
+    }
+    function evenr_to_pixel(cell) {
+      const off = cell.row % 2 === 0 ? 0.5 : 0;
+      const x = hexRadius * Math.sqrt(3) * (cell.col + off);
+      const y = hexRadius * (3/2) * cell.row;
+      return { x, y };
+    }
+    function drawBorder() {
+      for (let row = -1; row <= rows; row++) {
+        for (let col = -1; col <= cols; col++) {
+          if (row === -1 || row === rows || col === -1 || col === cols) {
+            const pos = evenr_to_pixel({ col, row });
+            drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, '#111111');
+          }
+        }
+      }
+    }
+    function drawHex(x, y, color = '#BBBBBB', context = ctx) {
+      context.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 3 * i + Math.PI / 6;
+        const xOffset = x + Math.cos(angle) * hexRadius;
+        const yOffset = y + Math.sin(angle) * hexRadius;
+        context.lineTo(xOffset, yOffset);
+      }
+      context.closePath();
+      context.fillStyle = color;
+      context.fill();
+      context.strokeStyle = '#333333';
+      context.lineWidth = 2;
+      context.stroke();
+    }
+
+    /* ---------------------------------------------------------------------------
+     * Group 3: Map Drawing Functions
+     * Functions:
+     *   - drawMap
+     * ------------------------------------------------------------------------- */
     function drawMap() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBorder();
-      // Jeśli mapa uległa zmianie, przebudowujemy chunkCache
       if (mapDirty) {
         chunkCache.clear();
+        chunkSize = computeChunkSize();
         const chunks = new Map();
         hexMap.forEach(cell => {
           const key = getChunkKey(cell.col, cell.row);
@@ -338,19 +626,26 @@
           chunks.get(key).push(cell);
         });
         chunks.forEach((cells, key) => updateChunk(key, cells));
+        updateSuperChunks();
         mapDirty = false;
       }
-      // Rysujemy chunki, o ile są widoczne (frustum culling)
-      chunkCache.forEach(chunk => {
-        const screenX = chunk.minX + canvas.width/2 + offsetX;
-        const screenY = chunk.minY + canvas.height/2 + offsetY;
-        if (screenX + chunk.width < 0 || screenX > canvas.width ||
-            screenY + chunk.height < 0 || screenY > canvas.height) {
-          return;
-        }
-        ctx.drawImage(chunk.canvas, screenX, screenY);
-      });
-      // Rysowanie obiektów (np. flag) – rysujemy je na wierzchu
+      if (superChunkCache.size > 0) {
+        superChunkCache.forEach(chunk => {
+          const screenX = chunk.minX + canvas.width/2 + offsetX;
+          const screenY = chunk.minY + canvas.height/2 + offsetY;
+          if (screenX + chunk.width < 0 || screenX > canvas.width ||
+              screenY + chunk.height < 0 || screenY > canvas.height) return;
+          ctx.drawImage(chunk.canvas, screenX, screenY);
+        });
+      } else {
+        chunkCache.forEach(chunk => {
+          const screenX = chunk.minX + canvas.width/2 + offsetX;
+          const screenY = chunk.minY + canvas.height/2 + offsetY;
+          if (screenX + chunk.width < 0 || screenX > canvas.width ||
+              screenY + chunk.height < 0 || screenY > canvas.height) return;
+          ctx.drawImage(chunk.canvas, screenX, screenY);
+        });
+      }
       hexMap.forEach(cell => {
         if (cell.objectId) {
           const obj = objectDefinitions[cell.objectId - 1];
@@ -372,7 +667,13 @@
       });
     }
 
-    // Obsługa historii (undo/redo)
+    /* ---------------------------------------------------------------------------
+     * Group 4: History Management Functions
+     * Functions:
+     *   - saveHistory
+     *   - undo
+     *   - redo
+     * ------------------------------------------------------------------------- */
     function saveHistory() {
       history.length = historyIndex + 1;
       history.push(JSON.parse(JSON.stringify(hexMap)));
@@ -397,7 +698,11 @@
       }
     }
 
-    // Przesuwanie mapy z ograniczeniami, aby nie zniknęła poza ekranem
+    /* ---------------------------------------------------------------------------
+     * Group 5: Map Panning Functions
+     * Functions:
+     *   - moveMap
+     * ------------------------------------------------------------------------- */
     function moveMap(dx, dy) {
       offsetX += dx;
       offsetY += dy;
@@ -411,82 +716,11 @@
       drawMap();
     }
 
-    // Panning myszką (narzędzie 'move')
-    let isMousePanning = false;
-    canvas.addEventListener('mousedown', (event) => {
-      if (selectedTool === 'move') {
-        isMousePanning = true;
-        canvas.style.cursor = `url('assets/cursors/${selectedTool}2.svg') 0 32, auto`;
-      }
-    });
-    canvas.addEventListener('mouseup', () => {
-      if (selectedTool === 'move') {
-        isMousePanning = false;
-        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
-      }
-    });
-    canvas.addEventListener('mouseleave', () => {
-      if (selectedTool === 'move') {
-        isMousePanning = false;
-      }
-    });
-    canvas.addEventListener('mousemove', (event) => {
-      if (selectedTool === 'move' && isMousePanning) {
-        moveMap(event.movementX, event.movementY);
-      }
-    });
-
-    // Obsługa malowania (dla narzędzi innych niż move)
-    let isPainting = false;
-    canvas.addEventListener('mousedown', (event) => {
-      if (selectedTool !== 'move') {
-        isPainting = true;
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        const cell = getCellAt(mouseX, mouseY);
-        if (cell) paintCell(cell);
-      }
-    });
-    canvas.addEventListener('mouseup', () => { isPainting = false; });
-    canvas.addEventListener('mouseleave', () => { isPainting = false; });
-    canvas.addEventListener('mousemove', (event) => {
-      if (isPainting && selectedTool !== 'move') {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        const cell = getCellAt(mouseX, mouseY);
-        if (cell) paintCell(cell);
-      }
-    });
-
-    resetButton.addEventListener('click', initHexMap);
-    undoButton.addEventListener('click', undo);
-    redoButton.addEventListener('click', redo);
-
-    // Śledzenie stanu klawiszy dla płynnego ruchu mapy
-    document.addEventListener('keydown', (event) => {
-      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
-        keysPressed[event.key] = true;
-        event.preventDefault();
-      }
-      if (event.ctrlKey && event.key === 'z') {
-        event.preventDefault();
-        undo();
-      }
-      if (event.ctrlKey && event.key === 'y') {
-        event.preventDefault();
-        redo();
-      }
-    });
-    document.addEventListener('keyup', (event) => {
-      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
-        keysPressed[event.key] = false;
-        event.preventDefault();
-      }
-    });
-
-    // Pętla animacji dla płynnego ruchu mapy
+    /* ---------------------------------------------------------------------------
+     * Group 6: Animation Functions
+     * Functions:
+     *   - animate
+     * ------------------------------------------------------------------------- */
     function animate() {
       const now = performance.now();
       const dt = (now - lastTime) / 1000;
@@ -497,7 +731,7 @@
       if (keysPressed['a'] || keysPressed['ArrowLeft']) vx += 1;
       if (keysPressed['d'] || keysPressed['ArrowRight']) vx -= 1;
       if (vx !== 0 || vy !== 0) {
-        const len = Math.sqrt(vx*vx + vy*vy);
+        const len = Math.sqrt(vx * vx + vy * vy);
         vx /= len;
         vy /= len;
         const speed = 200;
@@ -507,7 +741,12 @@
     }
     requestAnimationFrame(animate);
 
-    // Znajdowanie komórki pod kursorem
+    /* ---------------------------------------------------------------------------
+     * Group 7: Cell Selection and Object Helper Functions
+     * Functions:
+     *   - getCellAt
+     *   - isBlockedForObjects
+     * ------------------------------------------------------------------------- */
     function getCellAt(x, y) {
       for (const cell of hexMap) {
         const pos = evenr_to_pixel(cell);
@@ -515,19 +754,47 @@
         const centerY = pos.y + canvas.height/2 + offsetY;
         const dx = x - centerX;
         const dy = y - centerY;
-        if (Math.sqrt(dx*dx + dy*dy) < hexRadius) {
+        if (Math.sqrt(dx * dx + dy * dy) < hexRadius) {
           return cell;
         }
       }
       return null;
     }
-
     function isBlockedForObjects(cell) {
       const terrain = cellDefinitions[cell.id];
       return ['Mountains','Water','Ocean'].includes(terrain.name);
     }
 
-    // Malowanie komórek – obsługa narzędzi: pencil, big-pencil, bucket, eraser
+    /* ---------------------------------------------------------------------------
+     * Group 8: Hex Grid Calculation Helper Functions
+     * Functions:
+     *   - evenr_to_cube
+     *   - cubeDistance
+     *   - getCellsInRange
+     * ------------------------------------------------------------------------- */
+    function evenr_to_cube(cell) {
+      let x = cell.col - Math.floor((cell.row + (cell.row & 1)) / 2);
+      let z = cell.row;
+      let y = -x - z;
+      return { x, y, z };
+    }
+    function cubeDistance(a, b) {
+      return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.z - b.z));
+    }
+    function getCellsInRange(center, range) {
+      const centerCube = evenr_to_cube(center);
+      return hexMap.filter(cell => {
+        const cellCube = evenr_to_cube(cell);
+        return cubeDistance(centerCube, cellCube) <= range;
+      });
+    }
+
+    /* ---------------------------------------------------------------------------
+     * Group 9: Cell Painting Functions
+     * Functions:
+     *   - paintCell
+     *   - markDirtyForCell
+     * ------------------------------------------------------------------------- */
     function paintCell(cell) {
       if (selectedTool === 'bucket') {
         if (cell.id === selectedTerrainId) return;
@@ -569,31 +836,11 @@
         drawMap();
       } else if (selectedTool === 'big-pencil') {
         if (cell.id === selectedTerrainId) return;
-        cell.id = selectedTerrainId;
-        let neighbors;
-        if (cell.row % 2 === 0) {
-          neighbors = [
-            { col: cell.col + 1, row: cell.row },
-            { col: cell.col + 1, row: cell.row - 1 },
-            { col: cell.col,     row: cell.row - 1 },
-            { col: cell.col - 1, row: cell.row },
-            { col: cell.col,     row: cell.row + 1 },
-            { col: cell.col + 1, row: cell.row + 1 }
-          ];
-        } else {
-          neighbors = [
-            { col: cell.col + 1, row: cell.row },
-            { col: cell.col,     row: cell.row - 1 },
-            { col: cell.col - 1, row: cell.row - 1 },
-            { col: cell.col - 1, row: cell.row },
-            { col: cell.col - 1, row: cell.row + 1 },
-            { col: cell.col,     row: cell.row + 1 }
-          ];
-        }
-        neighbors.forEach(neighborPos => {
-          const neighborCell = hexMap.find(c => c.col === neighborPos.col && c.row === neighborPos.row);
-          if (neighborCell) {
-            neighborCell.id = selectedTerrainId;
+        const cellsToPaint = getCellsInRange(cell, bigBrushSize);
+        cellsToPaint.forEach(c => {
+          if (c.id !== selectedTerrainId) {
+            c.id = selectedTerrainId;
+            markDirtyForCell(c);
           }
         });
         mapDirty = true;
@@ -612,8 +859,197 @@
         drawMap();
       }
     }
+    function markDirtyForCell(cell) {
+      const key = getChunkKey(cell.col, cell.row);
+      dirtyChunks.add(key);
+      mapDirty = true;
+    }
 
-    // Obsługa przycisków narzędziowych
+    /* ---------------------------------------------------------------------------
+     * Group 10: UI Update Functions
+     * Functions:
+     *   - updateListVisibility
+     * ------------------------------------------------------------------------- */
+    function updateListVisibility() {
+      if (drawMode === 'color') {
+        document.getElementById('terrainList').style.display = 'block';
+        document.getElementById('objectList').style.display = 'none';
+      } else {
+        document.getElementById('terrainList').style.display = 'none';
+        document.getElementById('objectList').style.display = 'block';
+      }
+      selectedTool = 'move';
+      canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
+      const toolButtons = document.querySelectorAll('.tool-button');
+      toolButtons.forEach(btn => btn.classList.remove('selected'));
+      const moveBtn = document.querySelector(".tool-button[data-tool='move']");
+      if (moveBtn) moveBtn.classList.add('selected');
+    }
+
+    /* ---------------------------------------------------------------------------
+     * Group 11: Image Loading Functions
+     * Functions:
+     *   - loadImage
+     *   - getImage
+     * ------------------------------------------------------------------------- */
+    function loadImage(imagePath, callback) {
+      if (imageCache[imagePath]) {
+        callback(imageCache[imagePath]);
+        return;
+      }
+      fetch(imagePath)
+        .then(response => response.text())
+        .then(data => {
+          const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(svgBlob);
+          const image = new Image();
+          image.onload = function () {
+            imageCache[imagePath] = image;
+            callback(image);
+            URL.revokeObjectURL(url);
+          };
+          image.src = url;
+        })
+        .catch(error => console.error('Error loading image:', error));
+    }
+    function getImage(imagePath) {
+      return imageCache[imagePath];
+    }
+
+    /* ---------------------------------------------------------------------------
+     * Group 12: Map Initialization and Resizing Functions
+     * Functions:
+     *   - initHexMap
+     *   - updateHexSize
+     * ------------------------------------------------------------------------- */
+    function initHexMap() {
+      hexMap.length = 0;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          hexMap.push({ col, row, id: 0, objectId: 0 });
+        }
+      }
+      recalcCenterOffsets();
+      chunkSize = computeChunkSize();
+      mapDirty = true;
+      drawMap();
+      saveHistory();
+    }
+    initHexMap();
+    function updateHexSize(newSize) {
+      hexRadius = newSize;
+      hexWidth = Math.sqrt(3) * hexRadius;
+      hexHeight = 2 * hexRadius;
+      const baseGap = Math.max(1, hexRadius * 0.1);
+      gap = baseGap / zoomLevel;
+      hexHorizontalSpacing = hexWidth + gap;
+      hexVerticalSpacing = hexHeight * 0.75 + gap;
+      recalcCenterOffsets();
+      mapDirty = true;
+      drawMap();
+    }
+
+    /* =================== EVENT LISTENERS AND UI HANDLERS =================== */
+
+    // Panning with left mouse button when move tool is active
+    let isMousePanning = false;
+    canvas.addEventListener('mousedown', (event) => {
+      if (event.button === 0 && selectedTool === 'move') {
+        isMousePanning = true;
+        canvas.style.cursor = `url('assets/cursors/move2.svg') 0 32, auto`;
+      }
+    });
+    canvas.addEventListener('mouseup', (event) => {
+      if (event.button === 0 && selectedTool === 'move') {
+        isMousePanning = false;
+        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+      }
+    });
+    // Panning with middle mouse button
+    let previousTool = null;
+    let isMiddleMousePanning = false;
+    canvas.addEventListener('mousedown', (event) => {
+      if (event.button === 1) {
+        event.preventDefault();
+        previousTool = selectedTool;
+        selectedTool = 'move';
+        isMiddleMousePanning = true;
+        canvas.style.cursor = `url('assets/cursors/move2.svg') 0 32, auto`;
+      }
+    });
+    canvas.addEventListener('mouseup', (event) => {
+      if (event.button === 1) {
+        event.preventDefault();
+        isMiddleMousePanning = false;
+        selectedTool = previousTool || 'move';
+        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+      }
+    });
+    canvas.addEventListener('mousemove', (event) => {
+      if ((selectedTool === 'move' && isMousePanning) || isMiddleMousePanning) {
+        moveMap(event.movementX, event.movementY);
+      }
+    });
+
+    // Handling painting on the canvas
+    let isPainting = false;
+    canvas.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return;
+      if (selectedTool !== 'move') {
+        isPainting = true;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const cell = getCellAt(mouseX, mouseY);
+        if (cell) paintCell(cell);
+      }
+    });
+    canvas.addEventListener('mouseup', () => { isPainting = false; });
+    canvas.addEventListener('mouseleave', () => { isPainting = false; });
+    canvas.addEventListener('mousemove', (event) => {
+      if (isPainting && selectedTool !== 'move') {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const cell = getCellAt(mouseX, mouseY);
+        if (cell) paintCell(cell);
+      }
+    });
+
+    // Map Settings buttons
+    resetButton.addEventListener('click', initHexMap);
+    resizeButton.addEventListener('click', () => {
+      cols = parseInt(colsInput.value);
+      rows = parseInt(rowsInput.value);
+      if (cols < 5) cols = 5;
+      if (rows < 5) rows = 5;
+      if (cols > 200) cols = 200;
+      if (rows > 150) rows = 150;
+      initHexMap();
+    });
+    // Keyboard controls for panning and undo/redo
+    document.addEventListener('keydown', (event) => {
+      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
+        keysPressed[event.key] = true;
+        event.preventDefault();
+      }
+      if (event.ctrlKey && event.key === 'z') {
+        event.preventDefault();
+        undo();
+      }
+      if (event.ctrlKey && event.key === 'y') {
+        event.preventDefault();
+        redo();
+      }
+    });
+    document.addEventListener('keyup', (event) => {
+      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
+        keysPressed[event.key] = false;
+        event.preventDefault();
+      }
+    });
+
+    // UI Tool Buttons (in leftSidebar)
     const toolButtons = document.querySelectorAll('.tool-button');
     toolButtons.forEach(button => {
       button.addEventListener('click', () => {
@@ -623,36 +1059,20 @@
         button.classList.add('selected');
       });
     });
-    // Aktualizacja widoczności list terenów/obiektów zależnie od trybu
-    function updateListVisibility() {
-      if (drawMode === 'color') {
-        terrainList.style.display = 'block';
-        objectList.style.display = 'none';
-        toolButtons.forEach(tool => tool.style.display = 'block');
-        document.querySelector('[data-tool="eraser"]').style.display = 'none';
-      } else {
-        terrainList.style.display = 'none';
-        objectList.style.display = 'block';
-        toolButtons.forEach(tool => tool.style.display = 'none');
-        const moveTool = document.querySelector('[data-tool="move"]');
-        const pencilTool = document.querySelector('[data-tool="pencil"]');
-        const eraserTool = document.querySelector('[data-tool="eraser"]');
-        if (moveTool) moveTool.style.display = 'block';
-        if (pencilTool) pencilTool.style.display = 'block';
-        if (eraserTool) eraserTool.style.display = 'block';
-      }
-      selectedTool = 'move';
-      canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
-      toolButtons.forEach(btn => btn.classList.remove('selected'));
-      const moveBtn = document.querySelector(".tool-button[data-tool='move']");
-      if (moveBtn) moveBtn.classList.add('selected');
-    }
+    // Switch mode (Colors / Objects) in the right sidebar
     switchModeButton.addEventListener('click', () => {
       drawMode = drawMode === 'color' ? 'object' : 'color';
       switchModeButton.textContent = `Mode: ${drawMode === 'color' ? 'Colors' : 'Objects'}`;
       updateListVisibility();
     });
-    // UI – Lista terenów
+
+    // Add event listeners for bottom right Undo/Redo buttons
+    document.getElementById('undoButton').addEventListener('click', undo);
+    document.getElementById('redoButton').addEventListener('click', redo);
+
+    // Initialize Tile Lists (Terrain and Object) in the right sidebar
+    const terrainList = document.getElementById('terrainList');
+    const objectList = document.getElementById('objectList');
     cellDefinitions.forEach((terrain, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -674,7 +1094,6 @@
         tile.classList.add('selected');
       }
     });
-    // UI – Lista obiektów
     objectDefinitions.forEach((obj, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -700,57 +1119,12 @@
         tile.classList.add('selected');
       }
     });
-    // Ładowanie obrazków SVG z cache
-    function loadImage(imagePath, callback) {
-      if (imageCache[imagePath]) {
-        callback(imageCache[imagePath]);
-        return;
-      }
-      fetch(imagePath)
-        .then(response => response.text())
-        .then(data => {
-          const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
-          const url = URL.createObjectURL(svgBlob);
-          const image = new Image();
-          image.onload = function () {
-            imageCache[imagePath] = image;
-            callback(image);
-            URL.revokeObjectURL(url);
-          };
-          image.src = url;
-        })
-        .catch(error => console.error('Error loading image:', error));
-    }
-    function getImage(imagePath) {
-      return imageCache[imagePath];
-    }
-    // Inicjalizacja mapy – tworzymy komórki
-    function initHexMap() {
-      hexMap.length = 0;
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-          hexMap.push({ col, row, id: 0, objectId: 0 });
-        }
-      }
-      recalcCenterOffsets();
-      mapDirty = true;
-      drawMap();
-      saveHistory();
-    }
-    initHexMap();
 
-    // Resize map – przebudowa mapy wg podanej liczby kolumn/wierszy
-    resizeButton.addEventListener('click', () => {
-      cols = parseInt(colsInput.value);
-      rows = parseInt(rowsInput.value);
-      if (cols < 5) cols = 5;
-      if (rows < 5) rows = 5;
-      if (cols > 300) cols = 300;
-      if (rows > 200) rows = 200;
-      initHexMap();
-    });
-    // Import / Export danych
+    // IMPORT / EXPORT functionality
     exportButton.addEventListener('click', () => {
+      // Update title and description from the form inputs
+      title = mapTitleInput.value || title;
+      description = mapDescriptionInput.value || description;
       const data = {
         title,
         description,
@@ -796,21 +1170,16 @@
         reader.readAsText(file);
       }
     });
-    // Obsługa zmiany rozmiaru hexów (zoom)
-    function updateHexSize(newSize) {
-      hexRadius = newSize;
-      hexWidth = Math.sqrt(3) * hexRadius;
-      hexHeight = 2 * hexRadius;
-      const baseGap = Math.max(1, hexRadius * 0.1);
-      gap = baseGap / zoomLevel;
-      hexHorizontalSpacing = hexWidth + gap;
-      hexVerticalSpacing = hexHeight * 0.75 + gap;
-      recalcCenterOffsets();
-      mapDirty = true;
-      drawMap();
-    }
+
+    // ZOOM HANDLING WITH DEBOUNCING
+    let zoomDebounceTimer = null;
     hexSizeInput.addEventListener('input', (event) => {
-      updateHexSize(parseInt(event.target.value));
+      const newSize = parseInt(event.target.value);
+      if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+      zoomDebounceTimer = setTimeout(() => {
+        updateHexSize(newSize);
+        zoomDebounceTimer = null;
+      }, 100);
     });
     zoomInButton.addEventListener('click', () => {
       let current = parseInt(hexSizeInput.value);
@@ -830,6 +1199,7 @@
         updateHexSize(current);
       }
     });
+
     updateListVisibility();
     resizeCanvas();
   </script>
