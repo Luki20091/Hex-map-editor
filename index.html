@@ -212,10 +212,14 @@
       padding: 10px;
       border-radius: 4px;
     }
+    #bottomLeft .slider-container {
+      margin-bottom: 10px;
+    }
     #bottomLeft .slider-container label {
       font-size: 12px;
       color: var(--secondary-text);
       margin-bottom: 3px;
+      display: block;
     }
     #bottomLeft .slider-container input[type="range"] {
       width: 150px;
@@ -341,6 +345,11 @@
       <label for="bigBrushSize"><i class="fas fa-brush"></i> Big Brush Size</label>
       <input type="range" id="bigBrushSize" min="1" max="10" value="1">
     </div>
+    <!-- Dodany drugi suwak sterujący jaggedness -->
+    <div class="slider-container">
+      <label for="bigBrushRoughness"><i class="fas fa-random"></i> Jaggedness</label>
+      <input type="range" id="bigBrushRoughness" min="0" max="9" value="0">
+    </div>
   </div>
 
   <!-- Bottom Center Panel: Zoom Controls -->
@@ -375,6 +384,17 @@
     const bigBrushSizeInput = document.getElementById('bigBrushSize');
     const mapTitleInput = document.getElementById('mapTitle');
     const mapDescriptionInput = document.getElementById('mapDescription');
+
+    /* =================== BIG PENCIL SIZE SETUP =================== */
+    let bigBrushSize = parseInt(bigBrushSizeInput.value);
+    bigBrushSizeInput.addEventListener('input', (event) => {
+      bigBrushSize = parseInt(event.target.value);
+    });
+    // Ustawienie suwaka dla losowego poszarpania krawędzi (jaggedness)
+    let bigBrushRoughness = parseInt(document.getElementById('bigBrushRoughness').value);
+    document.getElementById('bigBrushRoughness').addEventListener('input', (event) => {
+      bigBrushRoughness = parseInt(event.target.value);
+    });
 
     // Cell and Object Definitions
     const cellDefinitions = [
@@ -422,12 +442,6 @@
     let imageCache = {};
     let title = "testowy tytuł";
     let description = "testowy opis";
-
-    // =================== BIG PENCIL SIZE SETUP ===================
-    let bigBrushSize = parseInt(bigBrushSizeInput.value);
-    bigBrushSizeInput.addEventListener('input', (event) => {
-      bigBrushSize = parseInt(event.target.value);
-    });
 
     // =================== CHUNKING VARIABLES ===================
     let chunkSize = 10; 
@@ -837,10 +851,18 @@
       } else if (selectedTool === 'big-pencil') {
         if (cell.id === selectedTerrainId) return;
         const cellsToPaint = getCellsInRange(cell, bigBrushSize);
+        const centerCube = evenr_to_cube(cell);
         cellsToPaint.forEach(c => {
-          if (c.id !== selectedTerrainId) {
-            c.id = selectedTerrainId;
-            markDirtyForCell(c);
+          const cellCube = evenr_to_cube(c);
+          const distance = cubeDistance(centerCube, cellCube);
+          // Ustalamy prawdopodobieństwo malowania: im dalej od środka, tym mniejsze
+          let p = 1 - (distance / bigBrushSize) * (bigBrushRoughness / 9);
+          p = Math.max(0, p);
+          if (Math.random() < p) {
+            if (c.id !== selectedTerrainId) {
+              c.id = selectedTerrainId;
+              markDirtyForCell(c);
+            }
           }
         });
         mapDirty = true;
