@@ -1,0 +1,277 @@
+/* Define root variables for our color palette and common sizes */
+:root {
+    --bg-color: #080b17;
+    --panel-bg: #1c1f2e;
+    --accent-color: #3498db;
+    --accent-hover: #2980b9;
+    --text-color: #ecf0f1;
+    --secondary-text: #bdc3c7;
+    --border-color: #333333;
+    --hover-bg: #2c3e50;
+}
+
+/* Global Styles */
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: var(--bg-color);
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+canvas {
+    display: block;
+    background-color: var(--bg-color);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+/* Left Sidebar: Tools (vertically centered) */
+#leftSidebar {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 60px;
+    background-color: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    z-index: 10;
+}
+#leftSidebar .tool-button {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    margin: 10px 0;
+    cursor: pointer;
+}
+#leftSidebar .tool-button.selected {
+    color: var(--accent-color);
+}
+
+/* Top Menu: Map Settings & Export Form (arranged horizontally) */
+#topLeft {
+    position: fixed;
+    top: 10px;
+    left: 60px;
+    right: 320px; /* leaves room for the right sidebar */
+    background-color: var(--panel-bg);
+    padding: 10px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 4px;
+}
+/* First row: Map settings arranged left-to-right */
+#topLeft .map-settings {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+#topLeft .map-settings .setting-item {
+    display: flex;
+    flex-direction: column;
+}
+#topLeft .map-settings .setting-item label {
+    font-size: 12px;
+    color: var(--secondary-text);
+    margin-bottom: 3px;
+}
+#topLeft .map-settings .setting-item input[type="number"],
+#topLeft .map-settings .setting-item input[type="text"] {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+#topLeft .map-settings .setting-item button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    cursor: pointer;
+}
+#topLeft .map-settings .setting-item button:hover {
+    background-color: var(--accent-hover);
+}
+/* Second row: Export form */
+#topLeft .export-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+#topLeft .export-form .setting-item {
+    display: flex;
+    flex-direction: column;
+}
+#topLeft .export-form .setting-item label {
+    font-size: 12px;
+    color: var(--secondary-text);
+    margin-bottom: 3px;
+}
+#topLeft .export-form .setting-item input[type="text"] {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+#topLeft .export-form .setting-item button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    cursor: pointer;
+}
+#topLeft .export-form .setting-item button:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Right Sidebar: Tile Palette (vertically centered) */
+#rightSidebar {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 300px;
+    background-color: var(--panel-bg);
+    padding: 10px;
+    z-index: 10;
+    overflow-y: auto;
+    border-radius: 4px 0 0 4px;
+}
+#rightSidebar button {
+    background-color: var(--accent-color);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-color);
+    padding: 5px 10px;
+    width: 100%;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+#rightSidebar button:hover {
+    background-color: var(--accent-hover);
+}
+#rightSidebar .tile {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#rightSidebar .tile .tile-color {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
+}
+#rightSidebar .tile:hover {
+    background-color: var(--hover-bg);
+}
+#rightSidebar .tile.selected {
+    background-color: var(--accent-color);
+}
+/* Adjust SVG size in objects menu */
+#rightSidebar .tile .tile-flag img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    margin-right: 10px;
+}
+
+/* Bottom Left Panel: Big Pencil Slider */
+#bottomLeft {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    z-index: 10;
+    background-color: var(--panel-bg);
+    padding: 10px;
+    border-radius: 4px;
+}
+#bottomLeft .slider-container {
+    margin-bottom: 10px;
+}
+#bottomLeft .slider-container label {
+    font-size: 12px;
+    color: var(--secondary-text);
+    margin-bottom: 3px;
+    display: block;
+}
+#bottomLeft .slider-container input[type="range"] {
+    width: 150px;
+}
+
+/* Bottom Center Panel: Zoom Controls */
+#bottomCenter {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background-color: var(--panel-bg);
+    padding: 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#bottomCenter button {
+    background-color: var(--accent-color);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-color);
+    padding: 5px 10px;
+    cursor: pointer;
+}
+#bottomCenter button:hover {
+    background-color: var(--accent-hover);
+}
+#bottomCenter input[type="range"] {
+    width: 200px;
+}
+
+/* Bottom Right Panel: Undo / Redo */
+#bottomRight {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    background-color: var(--panel-bg);
+    padding: 10px;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+}
+#bottomRight button {
+    background-color: var(--accent-color);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-color);
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+#bottomRight button:hover {
+    background-color: var(--accent-hover);
+}
+
+input, button {
+    font-family: inherit;
+}
