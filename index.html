@@ -114,16 +114,15 @@
     <input type="file" id="fileInput" style="display:none;">
     <div class="input-group">
       <label for="cols">Columns: </label>
-      <input type="number" id="cols" value="29" min="5" max="200" />
+      <input type="number" id="cols" value="29" min="5" max="300" />
     </div>
     <div class="input-group">
       <label for="rows">Rows: </label>
-      <input type="number" id="rows" value="17" min="5" max="150" />
+      <input type="number" id="rows" value="17" min="5" max="200" />
     </div>
-    <!-- Sterowanie zoomem -->
     <div class="input-group">
       <label for="hexSize">Hex Size (Zoom):</label>
-      <input type="range" id="hexSize" min="10" max="50" value="25">
+      <input type="range" id="hexSize" min="3" max="50" value="25">
     </div>
     <button id="zoomInButton">Zoom In</button>
     <button id="zoomOutButton">Zoom Out</button>
@@ -131,27 +130,26 @@
   </div>
 
   <script>
-    // Główne deklaracje zmiennych globalnych – każda zmienna występuje tylko raz
-    const canvas = document.getElementById("hexCanvas");
-    const ctx = canvas.getContext("2d");
-    const exportButton = document.getElementById("exportButton");
-    const importButton = document.getElementById("importButton");
-    const fileInput = document.getElementById("fileInput");
-    const terrainList = document.getElementById("terrainList");
-    const objectList = document.getElementById("objectList");
-    const undoButton = document.getElementById("undoButton");
-    const redoButton = document.getElementById("redoButton");
-    const resetButton = document.getElementById("resetButton");
-    const resizeButton = document.getElementById("resizeButton");
-    const colsInput = document.getElementById("cols");
-    const rowsInput = document.getElementById("rows");
-    const hexSizeInput = document.getElementById("hexSize");
-    const zoomInButton = document.getElementById("zoomInButton");
-    const zoomOutButton = document.getElementById("zoomOutButton");
-    const switchModeButton = document.getElementById("switchModeButton");
+    // Global deklaracje
+    const canvas = document.getElementById('hexCanvas');
+    const ctx = canvas.getContext('2d');
+    const exportButton = document.getElementById('exportButton');
+    const importButton = document.getElementById('importButton');
+    const fileInput = document.getElementById('fileInput');
+    const terrainList = document.getElementById('terrainList');
+    const objectList = document.getElementById('objectList');
+    const undoButton = document.getElementById('undoButton');
+    const redoButton = document.getElementById('redoButton');
+    const resetButton = document.getElementById('resetButton');
+    const resizeButton = document.getElementById('resizeButton');
+    const colsInput = document.getElementById('cols');
+    const rowsInput = document.getElementById('rows');
+    const hexSizeInput = document.getElementById('hexSize');
+    const zoomInButton = document.getElementById('zoomInButton');
+    const zoomOutButton = document.getElementById('zoomOutButton');
+    const switchModeButton = document.getElementById('switchModeButton');
 
-    // Definicje komórek oraz obiektów
-    // W cellDefinitions nie zapisujemy pola id – identyfikatorem będzie indeks w tablicy
+    // Definicje komórek i obiektów
     const cellDefinitions = [
       { name: "Default", color: "#BBBBBB" },
       { name: "Desert", color: "#FFD700" },
@@ -170,17 +168,14 @@
       { name: "Water", color: "#3fabff" },
       { name: "Ocean", color: "#325ddb" }
     ];
-
-    // Obiekty – nie zawierają pola id; komórki będą przechowywały objectId = (index + 1), gdzie 0 oznacza brak obiektu.
     const objectDefinitions = [
       { name: "Poland" },
       { name: "Germany" }
     ];
 
-    // Inne zmienne globalne
-    let selectedTerrainId = 1; // domyślnie "Desert" (cellDefinitions[1])
-    let selectedObjectId = 1;  // domyślnie pierwszy obiekt (objectDefinitions[0] → objectId = 1)
-    let drawMode = "color";    // "color" lub "object"
+    let selectedTerrainId = 1;
+    let selectedObjectId = 1;
+    let drawMode = "color";
     let selectedTool = "move";
     let history = [];
     let historyIndex = -1;
@@ -196,11 +191,16 @@
     let offsetX = 0;
     let offsetY = 0;
     let zoomLevel = 1;
-    const keysPressed = {}; // Do płynnego ruchu klawiszami
-    let lastTime = performance.now(); // Dla pętli animacji
-    let imageCache = {}; // Cache obrazków SVG
+    const keysPressed = {};
+    let lastTime = performance.now();
+    let imageCache = {};
     let title = "testowy tytuł";
     let description = "testowy opis";
+
+    // Zmienne dla chunkowania
+    const CHUNK_SIZE = 10; // liczba komórek w poziomie/wierszu chunka
+    let chunkCache = new Map(); // Map: klucz chunka → { canvas, minX, minY, width, height }
+    let mapDirty = true;      // flaga informująca, że mapa (chunkCache) wymaga przeliczenia
 
     // Ustawienie rozmiaru canvasu i centrowanie mapy
     function resizeCanvas() {
@@ -209,7 +209,7 @@
       recalcCenterOffsets();
       drawMap();
     }
-    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
 
     // Oblicz offsety, aby środek mapy (wszystkich komórek) był na środku canvasu
     function recalcCenterOffsets() {
@@ -219,128 +219,157 @@
       offsetX = -mapCenterX;
       offsetY = -mapCenterY;
     }
-
-    // Oblicza granice mapy (w współrzędnych świata) na podstawie hexMap
+    // Oblicza granice mapy na podstawie hexMap
     function getMapBounds() {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       hexMap.forEach(cell => {
-        const { x, y } = evenr_to_pixel(cell);
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        const pos = evenr_to_pixel(cell);
+        if (pos.x < minX) minX = pos.x;
+        if (pos.x > maxX) maxX = pos.x;
+        if (pos.y < minY) minY = pos.y;
+        if (pos.y > maxY) maxY = pos.y;
       });
       return { minX, maxX, minY, maxY };
     }
-
-    // Przelicza współrzędne komórki (even-r) na piksele (w układzie świata)
+    // Konwersja even-r na współrzędne pikseli
     function evenr_to_pixel(cell) {
       const off = cell.row % 2 === 0 ? 0.5 : 0;
       const x = hexRadius * Math.sqrt(3) * (cell.col + off);
-      const y = hexRadius * (3 / 2) * cell.row;
+      const y = hexRadius * (3/2) * cell.row;
       return { x, y };
     }
-
-    // Rysowanie granic mapy (opcjonalnie)
+    // Rysowanie granic mapy
     function drawBorder() {
       for (let row = -1; row <= rows; row++) {
         for (let col = -1; col <= cols; col++) {
           if (row === -1 || row === rows || col === -1 || col === cols) {
-            const { x, y } = evenr_to_pixel({ col, row });
-            drawHex(x + canvas.width / 2 + offsetX, y + canvas.height / 2 + offsetY, "#111111");
+            const pos = evenr_to_pixel({ col, row });
+            drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, '#111111');
           }
         }
       }
     }
-
-    // Rysowanie pojedynczego heksagonu (używane przy rysowaniu granic)
-    function drawHex(x, y, color = "#BBBBBB") {
-      ctx.beginPath();
+    // Rysowanie pojedynczego heksagonu (domyślnie na głównym canvasie)
+    function drawHex(x, y, color = '#BBBBBB', context = ctx) {
+      context.beginPath();
       for (let i = 0; i < 6; i++) {
         const angle = Math.PI / 3 * i + Math.PI / 6;
         const xOffset = x + Math.cos(angle) * hexRadius;
         const yOffset = y + Math.sin(angle) * hexRadius;
-        ctx.lineTo(xOffset, yOffset);
+        context.lineTo(xOffset, yOffset);
       }
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.strokeStyle = "#333333";
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      context.closePath();
+      context.fillStyle = color;
+      context.fill();
+      context.strokeStyle = '#333333';
+      context.lineWidth = 2;
+      context.stroke();
     }
 
-    // Optymalizowane rysowanie mapy – grupowanie heksów wg typu (cell.id)
-    function drawHexMapOptimized() {
-      // Grupowanie heksów według identyfikatora terenu
+    // Funkcje chunkowania
+    function getChunkKey(col, row) {
+      return Math.floor(col / CHUNK_SIZE) + '_' + Math.floor(row / CHUNK_SIZE);
+    }
+    // Dla danego chunka (lista komórek) tworzymy offscreen canvas, na którym rysujemy heksy grupując je wg typu (Path2D)
+    function updateChunk(chunkKey, chunkCells) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      chunkCells.forEach(cell => {
+        const pos = evenr_to_pixel(cell);
+        if (pos.x < minX) minX = pos.x;
+        if (pos.x > maxX) maxX = pos.x;
+        if (pos.y < minY) minY = pos.y;
+        if (pos.y > maxY) maxY = pos.y;
+      });
+      // Rozszerzamy granice, aby uwzględnić całą figurę heksagonu
+      minX -= hexRadius;
+      minY -= hexRadius;
+      maxX += hexRadius;
+      maxY += hexRadius;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = width;
+      offscreen.height = height;
+      const offCtx = offscreen.getContext('2d');
+      // Grupowanie heksów wg identyfikatora terenu
       const terrainGroups = {};
-      hexMap.forEach(cell => {
+      chunkCells.forEach(cell => {
+        const pos = evenr_to_pixel(cell);
+        const relX = pos.x - minX;
+        const relY = pos.y - minY;
         const terrainId = cell.id;
         if (!terrainGroups[terrainId]) {
           terrainGroups[terrainId] = new Path2D();
         }
-        const { x, y } = evenr_to_pixel(cell);
-        const screenX = x + canvas.width / 2 + offsetX;
-        const screenY = y + canvas.height / 2 + offsetY;
-        if (
-          screenX + hexRadius * 2 < 0 ||
-          screenX - hexRadius * 2 > canvas.width ||
-          screenY + hexRadius * 2 < 0 ||
-          screenY - hexRadius * 2 > canvas.height
-        ) {
-          return;
-        }
         const hexPath = new Path2D();
         for (let i = 0; i < 6; i++) {
           const angle = Math.PI / 3 * i + Math.PI / 6;
-          const xOffset = screenX + Math.cos(angle) * hexRadius;
-          const yOffset = screenY + Math.sin(angle) * hexRadius;
-          if (i === 0) {
-            hexPath.moveTo(xOffset, yOffset);
-          } else {
-            hexPath.lineTo(xOffset, yOffset);
-          }
+          const xOffset = relX + Math.cos(angle) * hexRadius;
+          const yOffset = relY + Math.sin(angle) * hexRadius;
+          if (i === 0) hexPath.moveTo(xOffset, yOffset);
+          else hexPath.lineTo(xOffset, yOffset);
         }
         hexPath.closePath();
         terrainGroups[terrainId].addPath(hexPath);
       });
-
-      // Rysowanie zgrupowanych heksów
       for (const terrainId in terrainGroups) {
-        ctx.fillStyle = cellDefinitions[terrainId].color;
-        ctx.fill(terrainGroups[terrainId]);
-        ctx.strokeStyle = "#333333";
-        ctx.lineWidth = 2;
-        ctx.stroke(terrainGroups[terrainId]);
+        offCtx.fillStyle = cellDefinitions[terrainId].color;
+        offCtx.fill(terrainGroups[terrainId]);
+        offCtx.strokeStyle = '#333333';
+        offCtx.lineWidth = 2;
+        offCtx.stroke(terrainGroups[terrainId]);
       }
-
-      // Rysowanie obiektów (np. flag) – pozostawiamy bez optymalizacji
+      // Zapisujemy offscreen canvas wraz z pozycją (minX, minY) w układzie świata
+      chunkCache.set(chunkKey, { canvas: offscreen, minX: minX, minY: minY, width: width, height: height });
+    }
+    // Rysowanie mapy – wykorzystanie cache chunków, frustum culling i offscreen canvas
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBorder();
+      // Jeśli mapa uległa zmianie, przebudowujemy chunkCache
+      if (mapDirty) {
+        chunkCache.clear();
+        const chunks = new Map();
+        hexMap.forEach(cell => {
+          const key = getChunkKey(cell.col, cell.row);
+          if (!chunks.has(key)) {
+            chunks.set(key, []);
+          }
+          chunks.get(key).push(cell);
+        });
+        chunks.forEach((cells, key) => updateChunk(key, cells));
+        mapDirty = false;
+      }
+      // Rysujemy chunki, o ile są widoczne (frustum culling)
+      chunkCache.forEach(chunk => {
+        const screenX = chunk.minX + canvas.width/2 + offsetX;
+        const screenY = chunk.minY + canvas.height/2 + offsetY;
+        if (screenX + chunk.width < 0 || screenX > canvas.width ||
+            screenY + chunk.height < 0 || screenY > canvas.height) {
+          return;
+        }
+        ctx.drawImage(chunk.canvas, screenX, screenY);
+      });
+      // Rysowanie obiektów (np. flag) – rysujemy je na wierzchu
       hexMap.forEach(cell => {
         if (cell.objectId) {
           const obj = objectDefinitions[cell.objectId - 1];
           if (obj) {
-            const { x, y } = evenr_to_pixel(cell);
-            const screenX = x + canvas.width / 2 + offsetX;
-            const screenY = y + canvas.height / 2 + offsetY;
-            const flagPath = "./assets/flags/" + obj.name + ".svg";
+            const pos = evenr_to_pixel(cell);
+            const screenX = pos.x + canvas.width/2 + offsetX;
+            const screenY = pos.y + canvas.height/2 + offsetY;
+            const flagPath = './assets/flags/' + obj.name + '.svg';
             const image = getImage(flagPath);
             if (image) {
-              ctx.drawImage(image, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
+              ctx.drawImage(image, screenX - hexRadius/2, screenY - hexRadius/2, hexRadius, hexRadius);
             } else {
               loadImage(flagPath, (loadedImage) => {
-                ctx.drawImage(loadedImage, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
+                ctx.drawImage(loadedImage, screenX - hexRadius/2, screenY - hexRadius/2, hexRadius, hexRadius);
               });
             }
           }
         }
       });
-    }
-
-    // Funkcja rysująca mapę – czyścimy canvas, rysujemy granice, a następnie heksy zoptymalizowanym sposobem
-    function drawMap() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBorder();
-      drawHexMapOptimized();
     }
 
     // Obsługa historii (undo/redo)
@@ -354,6 +383,7 @@
         historyIndex--;
         hexMap.length = 0;
         hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
+        mapDirty = true;
         drawMap();
       }
     }
@@ -362,53 +392,54 @@
         historyIndex++;
         hexMap.length = 0;
         hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
+        mapDirty = true;
         drawMap();
       }
     }
 
-    // Przesuwanie mapy (panning) z ograniczeniami, aby mapa nie zniknęła poza ekranem
+    // Przesuwanie mapy z ograniczeniami, aby nie zniknęła poza ekranem
     function moveMap(dx, dy) {
       offsetX += dx;
       offsetY += dy;
       const bounds = getMapBounds();
-      const minAllowedOffsetX = - (bounds.maxX + canvas.width / 2);
-      const maxAllowedOffsetX = canvas.width / 2 - bounds.minX;
+      const minAllowedOffsetX = - (bounds.maxX + canvas.width/2);
+      const maxAllowedOffsetX = canvas.width/2 - bounds.minX;
       offsetX = Math.min(Math.max(offsetX, minAllowedOffsetX), maxAllowedOffsetX);
-      const minAllowedOffsetY = - (bounds.maxY + canvas.height / 2);
-      const maxAllowedOffsetY = canvas.height / 2 - bounds.minY;
+      const minAllowedOffsetY = - (bounds.maxY + canvas.height/2);
+      const maxAllowedOffsetY = canvas.height/2 - bounds.minY;
       offsetY = Math.min(Math.max(offsetY, minAllowedOffsetY), maxAllowedOffsetY);
       drawMap();
     }
 
-    // Panning myszką (dla narzędzia "move")
+    // Panning myszką (narzędzie 'move')
     let isMousePanning = false;
-    canvas.addEventListener("mousedown", (event) => {
-      if (selectedTool === "move") {
+    canvas.addEventListener('mousedown', (event) => {
+      if (selectedTool === 'move') {
         isMousePanning = true;
         canvas.style.cursor = `url('assets/cursors/${selectedTool}2.svg') 0 32, auto`;
       }
     });
-    canvas.addEventListener("mouseup", () => {
-      if (selectedTool === "move") {
+    canvas.addEventListener('mouseup', () => {
+      if (selectedTool === 'move') {
         isMousePanning = false;
         canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
       }
     });
-    canvas.addEventListener("mouseleave", () => {
-      if (selectedTool === "move") {
+    canvas.addEventListener('mouseleave', () => {
+      if (selectedTool === 'move') {
         isMousePanning = false;
       }
     });
-    canvas.addEventListener("mousemove", (event) => {
-      if (selectedTool === "move" && isMousePanning) {
+    canvas.addEventListener('mousemove', (event) => {
+      if (selectedTool === 'move' && isMousePanning) {
         moveMap(event.movementX, event.movementY);
       }
     });
 
-    // Obsługa malowania – dla narzędzi innych niż "move"
+    // Obsługa malowania (dla narzędzi innych niż move)
     let isPainting = false;
-    canvas.addEventListener("mousedown", (event) => {
-      if (selectedTool !== "move") {
+    canvas.addEventListener('mousedown', (event) => {
+      if (selectedTool !== 'move') {
         isPainting = true;
         const rect = canvas.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
@@ -417,10 +448,10 @@
         if (cell) paintCell(cell);
       }
     });
-    canvas.addEventListener("mouseup", () => { isPainting = false; });
-    canvas.addEventListener("mouseleave", () => { isPainting = false; });
-    canvas.addEventListener("mousemove", (event) => {
-      if (isPainting && selectedTool !== "move") {
+    canvas.addEventListener('mouseup', () => { isPainting = false; });
+    canvas.addEventListener('mouseleave', () => { isPainting = false; });
+    canvas.addEventListener('mousemove', (event) => {
+      if (isPainting && selectedTool !== 'move') {
         const rect = canvas.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
@@ -429,47 +460,47 @@
       }
     });
 
-    resetButton.addEventListener("click", initHexMap);
-    undoButton.addEventListener("click", undo);
-    redoButton.addEventListener("click", redo);
+    resetButton.addEventListener('click', initHexMap);
+    undoButton.addEventListener('click', undo);
+    redoButton.addEventListener('click', redo);
 
     // Śledzenie stanu klawiszy dla płynnego ruchu mapy
-    document.addEventListener("keydown", (event) => {
-      if (["w", "ArrowUp", "a", "ArrowLeft", "s", "ArrowDown", "d", "ArrowRight"].includes(event.key)) {
+    document.addEventListener('keydown', (event) => {
+      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
         keysPressed[event.key] = true;
         event.preventDefault();
       }
-      if (event.ctrlKey && event.key === "z") {
+      if (event.ctrlKey && event.key === 'z') {
         event.preventDefault();
         undo();
       }
-      if (event.ctrlKey && event.key === "y") {
+      if (event.ctrlKey && event.key === 'y') {
         event.preventDefault();
         redo();
       }
     });
-    document.addEventListener("keyup", (event) => {
-      if (["w", "ArrowUp", "a", "ArrowLeft", "s", "ArrowDown", "d", "ArrowRight"].includes(event.key)) {
+    document.addEventListener('keyup', (event) => {
+      if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
         keysPressed[event.key] = false;
         event.preventDefault();
       }
     });
 
-    // Pętla animacji – płynny ruch mapy klawiszami (8 kierunków)
+    // Pętla animacji dla płynnego ruchu mapy
     function animate() {
       const now = performance.now();
       const dt = (now - lastTime) / 1000;
       lastTime = now;
       let vx = 0, vy = 0;
-      if (keysPressed["w"] || keysPressed["ArrowUp"]) { vy += 1; }
-      if (keysPressed["s"] || keysPressed["ArrowDown"]) { vy -= 1; }
-      if (keysPressed["a"] || keysPressed["ArrowLeft"]) { vx += 1; }
-      if (keysPressed["d"] || keysPressed["ArrowRight"]) { vx -= 1; }
+      if (keysPressed['w'] || keysPressed['ArrowUp']) vy += 1;
+      if (keysPressed['s'] || keysPressed['ArrowDown']) vy -= 1;
+      if (keysPressed['a'] || keysPressed['ArrowLeft']) vx += 1;
+      if (keysPressed['d'] || keysPressed['ArrowRight']) vx -= 1;
       if (vx !== 0 || vy !== 0) {
-        const len = Math.sqrt(vx * vx + vy * vy);
+        const len = Math.sqrt(vx*vx + vy*vy);
         vx /= len;
         vy /= len;
-        const speed = 200; // pikseli na sekundę
+        const speed = 200;
         moveMap(vx * speed * dt, vy * speed * dt);
       }
       requestAnimationFrame(animate);
@@ -479,27 +510,26 @@
     // Znajdowanie komórki pod kursorem
     function getCellAt(x, y) {
       for (const cell of hexMap) {
-        const { x: cx, y: cy } = evenr_to_pixel(cell);
-        const centerX = cx + canvas.width / 2 + offsetX;
-        const centerY = cy + canvas.height / 2 + offsetY;
+        const pos = evenr_to_pixel(cell);
+        const centerX = pos.x + canvas.width/2 + offsetX;
+        const centerY = pos.y + canvas.height/2 + offsetY;
         const dx = x - centerX;
         const dy = y - centerY;
-        if (Math.sqrt(dx * dx + dy * dy) < hexRadius) {
+        if (Math.sqrt(dx*dx + dy*dy) < hexRadius) {
           return cell;
         }
       }
       return null;
     }
 
-    // Funkcja blokująca umieszczanie obiektów na pewnych terenach
     function isBlockedForObjects(cell) {
       const terrain = cellDefinitions[cell.id];
-      return ["Mountains", "Water", "Ocean"].includes(terrain.name);
+      return ['Mountains','Water','Ocean'].includes(terrain.name);
     }
 
     // Malowanie komórek – obsługa narzędzi: pencil, big-pencil, bucket, eraser
     function paintCell(cell) {
-      if (selectedTool === "bucket") {
+      if (selectedTool === 'bucket') {
         if (cell.id === selectedTerrainId) return;
         const targetId = cell.id;
         const queue = [cell];
@@ -507,7 +537,7 @@
           const current = queue.pop();
           if (current.id === targetId) {
             current.id = selectedTerrainId;
-            if (["Mountains", "Water", "Ocean"].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
+            if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
               current.objectId = 0;
             }
             const neighbors = hexMap.filter(c => {
@@ -518,24 +548,27 @@
             queue.push(...neighbors.filter(c => c.id === targetId));
           }
         }
+        mapDirty = true;
         saveHistory();
         drawMap();
-      } else if (selectedTool === "pencil") {
-        if (drawMode === "color") {
+      } else if (selectedTool === 'pencil') {
+        if (drawMode === 'color') {
           if (cell.id === selectedTerrainId) return;
-          if (["Mountains", "Water", "Ocean"].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
+          if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
             cell.objectId = 0;
           }
           cell.id = selectedTerrainId;
-        } else if (drawMode === "object") {
+        } else if (drawMode === 'object') {
           if (!selectedObjectId) return;
           if (isBlockedForObjects(cell)) return;
           if (cell.objectId === selectedObjectId) return;
           cell.objectId = selectedObjectId;
         }
+        mapDirty = true;
         saveHistory();
         drawMap();
-      } else if (selectedTool === "big-pencil") {
+      } else if (selectedTool === 'big-pencil') {
+        if (cell.id === selectedTerrainId) return;
         cell.id = selectedTerrainId;
         let neighbors;
         if (cell.row % 2 === 0) {
@@ -563,114 +596,110 @@
             neighborCell.id = selectedTerrainId;
           }
         });
+        mapDirty = true;
         saveHistory();
         drawMap();
-      } else if (selectedTool === "eraser") {
-        if (drawMode === "object") {
+      } else if (selectedTool === 'eraser') {
+        if (drawMode === 'object') {
           if (cell.objectId === 0) return;
           cell.objectId = 0;
         } else {
           if (cell.id === 0) return;
           cell.id = 0;
         }
+        mapDirty = true;
         saveHistory();
         drawMap();
       }
     }
 
     // Obsługa przycisków narzędziowych
-    const toolButtons = document.querySelectorAll(".tool-button");
+    const toolButtons = document.querySelectorAll('.tool-button');
     toolButtons.forEach(button => {
-      button.addEventListener("click", () => {
+      button.addEventListener('click', () => {
         selectedTool = button.dataset.tool;
         canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
-        toolButtons.forEach(btn => btn.classList.remove("selected"));
-        button.classList.add("selected");
+        toolButtons.forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
       });
     });
-
-    // Aktualizacja widoczności list (terenów/obiektów) w zależności od trybu rysowania
+    // Aktualizacja widoczności list terenów/obiektów zależnie od trybu
     function updateListVisibility() {
-      if (drawMode === "color") {
-        terrainList.style.display = "block";
-        objectList.style.display = "none";
-        toolButtons.forEach(tool => tool.style.display = "block");
-        document.querySelector('[data-tool="eraser"]').style.display = "none";
+      if (drawMode === 'color') {
+        terrainList.style.display = 'block';
+        objectList.style.display = 'none';
+        toolButtons.forEach(tool => tool.style.display = 'block');
+        document.querySelector('[data-tool="eraser"]').style.display = 'none';
       } else {
-        terrainList.style.display = "none";
-        objectList.style.display = "block";
-        toolButtons.forEach(tool => tool.style.display = "none");
+        terrainList.style.display = 'none';
+        objectList.style.display = 'block';
+        toolButtons.forEach(tool => tool.style.display = 'none');
         const moveTool = document.querySelector('[data-tool="move"]');
         const pencilTool = document.querySelector('[data-tool="pencil"]');
         const eraserTool = document.querySelector('[data-tool="eraser"]');
-        if (moveTool) moveTool.style.display = "block";
-        if (pencilTool) pencilTool.style.display = "block";
-        if (eraserTool) eraserTool.style.display = "block";
+        if (moveTool) moveTool.style.display = 'block';
+        if (pencilTool) pencilTool.style.display = 'block';
+        if (eraserTool) eraserTool.style.display = 'block';
       }
-      // Ustawiamy domyślne narzędzie jako "move"
-      selectedTool = "move";
+      selectedTool = 'move';
       canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
-      toolButtons.forEach(btn => btn.classList.remove("selected"));
+      toolButtons.forEach(btn => btn.classList.remove('selected'));
       const moveBtn = document.querySelector(".tool-button[data-tool='move']");
-      if (moveBtn) moveBtn.classList.add("selected");
+      if (moveBtn) moveBtn.classList.add('selected');
     }
-
-    switchModeButton.addEventListener("click", () => {
-      drawMode = drawMode === "color" ? "object" : "color";
-      switchModeButton.textContent = `Mode: ${drawMode === "color" ? "Colors" : "Objects"}`;
+    switchModeButton.addEventListener('click', () => {
+      drawMode = drawMode === 'color' ? 'object' : 'color';
+      switchModeButton.textContent = `Mode: ${drawMode === 'color' ? 'Colors' : 'Objects'}`;
       updateListVisibility();
     });
-
-    // UI – Lista terenów (cellDefinitions)
+    // UI – Lista terenów
     cellDefinitions.forEach((terrain, index) => {
-      const tile = document.createElement("div");
-      tile.classList.add("tile");
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
       tile.dataset.terrainId = index;
-      const colorBox = document.createElement("div");
-      colorBox.classList.add("tile-color");
+      const colorBox = document.createElement('div');
+      colorBox.classList.add('tile-color');
       colorBox.style.backgroundColor = terrain.color;
-      const label = document.createElement("span");
+      const label = document.createElement('span');
       label.textContent = terrain.name;
       tile.appendChild(colorBox);
       tile.appendChild(label);
       terrainList.appendChild(tile);
-      tile.addEventListener("click", () => {
+      tile.addEventListener('click', () => {
         selectedTerrainId = parseInt(tile.dataset.terrainId);
-        document.querySelectorAll("#terrainList .tile").forEach(t => t.classList.remove("selected"));
-        tile.classList.add("selected");
+        document.querySelectorAll('#terrainList .tile').forEach(t => t.classList.remove('selected'));
+        tile.classList.add('selected');
       });
       if (index === selectedTerrainId) {
-        tile.classList.add("selected");
+        tile.classList.add('selected');
       }
     });
-
-    // UI – Lista obiektów (objectDefinitions)
+    // UI – Lista obiektów
     objectDefinitions.forEach((obj, index) => {
-      const tile = document.createElement("div");
-      tile.classList.add("tile");
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
       tile.dataset.objectId = index + 1;
-      const flagContainer = document.createElement("div");
-      flagContainer.classList.add("tile-flag");
-      const flagImage = document.createElement("img");
-      const flagPath = "./assets/flags/" + obj.name + ".svg";
+      const flagContainer = document.createElement('div');
+      flagContainer.classList.add('tile-flag');
+      const flagImage = document.createElement('img');
+      const flagPath = './assets/flags/' + obj.name + '.svg';
       flagImage.src = flagPath;
       flagImage.alt = `${obj.name} flag`;
       flagContainer.appendChild(flagImage);
-      const label = document.createElement("span");
+      const label = document.createElement('span');
       label.textContent = obj.name;
       tile.appendChild(flagContainer);
       tile.appendChild(label);
       objectList.appendChild(tile);
-      tile.addEventListener("click", () => {
+      tile.addEventListener('click', () => {
         selectedObjectId = parseInt(tile.dataset.objectId);
-        document.querySelectorAll("#objectList .tile").forEach(t => t.classList.remove("selected"));
-        tile.classList.add("selected");
+        document.querySelectorAll('#objectList .tile').forEach(t => t.classList.remove('selected'));
+        tile.classList.add('selected');
       });
       if (index + 1 === selectedObjectId) {
-        tile.classList.add("selected");
+        tile.classList.add('selected');
       }
     });
-
     // Ładowanie obrazków SVG z cache
     function loadImage(imagePath, callback) {
       if (imageCache[imagePath]) {
@@ -690,13 +719,12 @@
           };
           image.src = url;
         })
-        .catch(error => console.error("Error loading image:", error));
+        .catch(error => console.error('Error loading image:', error));
     }
     function getImage(imagePath) {
       return imageCache[imagePath];
     }
-
-    // Inicjalizacja mapy – utworzenie komórek (cells)
+    // Inicjalizacja mapy – tworzymy komórki
     function initHexMap() {
       hexMap.length = 0;
       for (let row = 0; row < rows; row++) {
@@ -705,24 +733,24 @@
         }
       }
       recalcCenterOffsets();
+      mapDirty = true;
       drawMap();
       saveHistory();
     }
     initHexMap();
 
-    // Przycisk Resize Map – przebudowa mapy wg podanej liczby kolumn/wierszy
-    resizeButton.addEventListener("click", () => {
+    // Resize map – przebudowa mapy wg podanej liczby kolumn/wierszy
+    resizeButton.addEventListener('click', () => {
       cols = parseInt(colsInput.value);
       rows = parseInt(rowsInput.value);
       if (cols < 5) cols = 5;
       if (rows < 5) rows = 5;
-      if (cols > 100) cols = 100;
-      if (rows > 70) rows = 70;
+      if (cols > 300) cols = 300;
+      if (rows > 200) rows = 200;
       initHexMap();
     });
-
     // Import / Export danych
-    exportButton.addEventListener("click", () => {
+    exportButton.addEventListener('click', () => {
       const data = {
         title,
         description,
@@ -733,18 +761,18 @@
         cells: hexMap
       };
       const dataStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
+      const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = "hexMap.json";
+      a.download = 'hexMap.json';
       a.click();
       URL.revokeObjectURL(url);
     });
-    importButton.addEventListener("click", () => {
+    importButton.addEventListener('click', () => {
       fileInput.click();
     });
-    fileInput.addEventListener("change", event => {
+    fileInput.addEventListener('change', event => {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
@@ -761,13 +789,13 @@
             hexMap.push(cell);
           });
           recalcCenterOffsets();
+          mapDirty = true;
           drawMap();
           saveHistory();
         };
         reader.readAsText(file);
       }
     });
-
     // Obsługa zmiany rozmiaru hexów (zoom)
     function updateHexSize(newSize) {
       hexRadius = newSize;
@@ -778,12 +806,13 @@
       hexHorizontalSpacing = hexWidth + gap;
       hexVerticalSpacing = hexHeight * 0.75 + gap;
       recalcCenterOffsets();
+      mapDirty = true;
       drawMap();
     }
-    hexSizeInput.addEventListener("input", (event) => {
+    hexSizeInput.addEventListener('input', (event) => {
       updateHexSize(parseInt(event.target.value));
     });
-    zoomInButton.addEventListener("click", () => {
+    zoomInButton.addEventListener('click', () => {
       let current = parseInt(hexSizeInput.value);
       if (current < parseInt(hexSizeInput.max)) {
         current++;
@@ -792,7 +821,7 @@
         updateHexSize(current);
       }
     });
-    zoomOutButton.addEventListener("click", () => {
+    zoomOutButton.addEventListener('click', () => {
       let current = parseInt(hexSizeInput.value);
       if (current > parseInt(hexSizeInput.min)) {
         current--;
@@ -801,7 +830,6 @@
         updateHexSize(current);
       }
     });
-
     updateListVisibility();
     resizeCanvas();
   </script>
