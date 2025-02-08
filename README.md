@@ -3,7 +3,7 @@
 
 # Version Beta 1.7:
 - [x] Big pencil size and radnomize settings
-- [x] Much better styling and layout
+- [x] Testing better styling and layout
 
 # Version Beta 1.6:
 - [x] Optimalization => max map size 200x150
