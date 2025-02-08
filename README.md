@@ -1,6 +1,11 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
+# Version Beta 1.8:
+- [ ] Definitely better styling
+- [ ] Hide tools when switch mode
+- [ ] WSAD - ?
+      
 # Version Beta 1.7:
 - [x] Big pencil size and radnomize settings
 - [x] Testing better styling and layout
