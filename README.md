@@ -3,7 +3,8 @@
 
 # Version Beta 1.8:
 - [ ] Definitely better styling
-- [ ] Hide tools when switch mode
+- [ ] Better cursors look (white fill/interactive fill)
+- [ ] Hide/show some tools when switching modes
 - [ ] WSAD - ?
       
 # Version Beta 1.7:
