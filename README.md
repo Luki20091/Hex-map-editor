@@ -5,7 +5,7 @@
 - [ ] 
 
 # Version Beta 1.6:
-- [x] Optimalization => max map size 300x200
+- [x] Optimalization => max map size 200x150
 
 # Version Beta 1.5:
 - [x] objects undo/redo support
