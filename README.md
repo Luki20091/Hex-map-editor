@@ -6,6 +6,7 @@
 - [x] Testing better styling and layout
 - [x] Export form - tile and description
 - [x] WSAD - off
+- [x] Moving through scrolling is faster
 
 # Version Beta 1.6:
 - [x] Optimalization => max map size 200x150
