@@ -3,11 +3,12 @@
 
 # Version Beta 2.0:
 - [ ] Definitely better styling
+- [ ] Favicon
 
 # Version Beta 1.9:
 - [ ] Change mode icon - ?
 - [ ] Id in cell/object definitions
-- [ ] More objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
+- [ ] All objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
 - [ ] Refresh/quit prevent
       
 # Version Beta 1.8:
