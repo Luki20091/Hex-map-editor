@@ -5,6 +5,7 @@
 - [ ] Definitely better styling
 - [ ] Better cursors look (white fill/interactive fill)
 - [ ] Hide/show some tools when switching modes
+- [ ] Resize undo/redo - ? 
 - [ ] WSAD - ?
       
 # Version Beta 1.7:
