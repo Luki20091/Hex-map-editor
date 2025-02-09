@@ -1,8 +1,14 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
-# Version Beta 1.9:
+# Version Beta 2.0:
 - [ ] Definitely better styling
+
+# Version Beta 1.9:
+- [ ] Change mode icon - ?
+- [ ] Id in cell/object def
+- [ ] More objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
+- [ ] Refresh/quit prevent
       
 # Version Beta 1.8:
 - [x] Better cursors look (white fill)
