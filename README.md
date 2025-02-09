@@ -3,10 +3,10 @@
 
 # Version Beta 1.8:
 - [ ] Definitely better styling
-- [ ] Better cursors look (white fill/interactive fill)
-- [ ] Hide/show some tools when switching modes
-- [ ] Resize undo/redo - ? 
-- [ ] WSAD - ?
+- [x] Better cursors look (white fill/interactive fill)
+- [x] Hide/show some tools when switching modes
+- [x] Better resize + undo/redo
+- [x] WSAD - on
       
 # Version Beta 1.7:
 - [x] Big pencil size and radnomize settings
