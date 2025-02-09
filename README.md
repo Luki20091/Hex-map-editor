@@ -1,9 +1,11 @@
 # History of balls - Hex map editor
 [Click and edit your maps](https://luki20091.github.io/Hex-map-editor/)
 
-# Version Beta 1.8:
+# Version Beta 1.9:
 - [ ] Definitely better styling
-- [x] Better cursors look (white fill/interactive fill)
+      
+# Version Beta 1.8:
+- [x] Better cursors look (white fill)
 - [x] Hide/show some tools when switching modes
 - [x] Better resize + undo/redo
 - [x] WSAD - on
