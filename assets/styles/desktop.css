@@ -1,13 +1,13 @@
 /* Define root variables for our color palette and common sizes */
 :root {
-    --bg-color: #080b17;
-    --panel-bg: #1c1f2e;
-    --accent-color: #3498db;
-    --accent-hover: #2980b9;
+    --bg-color: #030a1c;
+    --panel-bg: #11244a;
+    --accent-color: #1c86f0b5;
+    --accent-hover: #1c86f0;
     --text-color: #ecf0f1;
     --secondary-text: #bdc3c7;
     --border-color: #333333;
-    --hover-bg: #2c3e50;
+    --hover-bg: #1c86f044;
 }
 
 /* Global Styles */
@@ -43,6 +43,8 @@ canvas {
     align-items: center;
     padding: 10px 0;
     z-index: 10;
+    margin: 0 10px;
+    border-radius: 4px;
 }
 #leftSidebar .tool-button {
     background: none;
@@ -149,10 +151,12 @@ canvas {
     transform: translateY(-50%);
     width: 300px;
     background-color: var(--panel-bg);
+    color: var(--text-color);
     padding: 10px;
     z-index: 10;
     overflow-y: auto;
-    border-radius: 4px 0 0 4px;
+    border-radius: 4px;
+    margin: 0 10px;
 }
 #rightSidebar button {
     background-color: var(--accent-color);

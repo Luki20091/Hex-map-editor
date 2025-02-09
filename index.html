@@ -13,9 +13,9 @@
   <meta charset="UTF-8" />
   <!-- Disable zooming on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.7</title>
+  <title>Hex Map Editor - BETA 1.8</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous"></script>
-	<link rel="stylesheet" type="text/css" href="assets/styles/desktop.css">
+  <link rel="stylesheet" type="text/css" href="assets/styles/desktop.css">
 </head>
 <body>
   <!-- Main canvas for drawing the hex map -->
@@ -51,11 +51,13 @@
     <div class="export-form">
       <div class="setting-item">
         <label for="mapTitle"><i class="fas fa-font"></i> Title</label>
-        <input type="text" id="mapTitle" placeholder="Map title" minlength="5" maxlength="30" required>
+        <!-- Walidacja: tylko litery, cyfry oraz "-" -->
+        <input type="text" id="mapTitle" placeholder="Map title" minlength="5" maxlength="30" pattern="[A-Za-z0-9-]{5,30}" required>
       </div>
       <div class="setting-item">
         <label for="mapDescription"><i class="fas fa-info-circle"></i> Description</label>
-        <input type="text" id="mapDescription" placeholder="Map description" minlength="5" maxlength="100" required>
+        <!-- Walidacja: tylko litery, cyfry oraz "-" -->
+        <input type="text" id="mapDescription" placeholder="Map description" minlength="5" maxlength="100" pattern="[A-Za-z0-9-]{5,100}" required>
       </div>
       <div class="setting-item">
         <button id="exportButton" title="Export to JSON"><i class="fas fa-file-export"></i> Export</button>
@@ -78,7 +80,7 @@
       <label for="bigBrushSize"><i class="fas fa-brush"></i> Big Brush Size</label>
       <input type="range" id="bigBrushSize" min="1" max="10" value="1">
     </div>
-    <!-- Dodany drugi suwak sterujący jaggedness -->
+    <!-- Drugi suwak sterujący jaggedness -->
     <div class="slider-container">
       <label for="bigBrushRoughness"><i class="fas fa-random"></i> Jaggedness</label>
       <input type="range" id="bigBrushRoughness" min="0" max="9" value="0">
@@ -122,7 +124,6 @@
     bigBrushSizeInput.addEventListener('input', (event) => {
       bigBrushSize = parseInt(event.target.value);
     });
-    // Ustawienie suwaka dla losowego poszarpania krawędzi (jaggedness)
     let bigBrushRoughness = parseInt(document.getElementById('bigBrushRoughness').value);
     document.getElementById('bigBrushRoughness').addEventListener('input', (event) => {
       bigBrushRoughness = parseInt(event.target.value);
@@ -159,7 +160,7 @@
     let historyIndex = -1;
     let cols = 29;
     let rows = 17;
-    const hexMap = []; // Each cell: { col, row, id, objectId }
+    const hexMap = []; // Każda komórka: { col, row, id, objectId }
     let hexRadius = parseInt(hexSizeInput.value);
     let hexWidth = Math.sqrt(3) * hexRadius;
     let hexHeight = 2 * hexRadius;
@@ -183,12 +184,7 @@
     let dirtyChunks = new Set();
 
     /* ---------------------------------------------------------------------------
-     * Group 2: Chunking Functions
-     * Functions:
-     *   - computeChunkSize
-     *   - getChunkKey
-     *   - updateChunk
-     *   - updateSuperChunks
+     * Group 2: Chunking Functions (bez zmian)
      * ------------------------------------------------------------------------- */
     function computeChunkSize() {
       const totalCells = cols * rows;
@@ -236,7 +232,6 @@
         hexPath.closePath();
         terrainGroups[terrainId].addPath(hexPath);
       });
-      // Retrieve border color from root variables
       const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#333333';
       for (const terrainId in terrainGroups) {
         offCtx.fillStyle = cellDefinitions[terrainId].color;
@@ -287,13 +282,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 1: Canvas and Offset Setup Functions
-     * Functions:
-     *   - resizeCanvas
-     *   - recalcCenterOffsets
-     *   - getMapBounds
-     *   - evenr_to_pixel
-     *   - drawBorder
-     *   - drawHex
      * ------------------------------------------------------------------------- */
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -331,7 +319,8 @@
         for (let col = -1; col <= cols; col++) {
           if (row === -1 || row === rows || col === -1 || col === cols) {
             const pos = evenr_to_pixel({ col, row });
-            drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, '#111111');
+            const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim() || '#030a1c';
+            drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, bgColor);
           }
         }
       }
@@ -354,8 +343,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 3: Map Drawing Functions
-     * Functions:
-     *   - drawMap
      * ------------------------------------------------------------------------- */
     function drawMap() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -414,40 +401,47 @@
     }
 
     /* ---------------------------------------------------------------------------
-     * Group 4: History Management Functions
-     * Functions:
-     *   - saveHistory
-     *   - undo
-     *   - redo
+     * Group 4: History Management Functions (zapisujemy także rows i cols)
      * ------------------------------------------------------------------------- */
     function saveHistory() {
+      const state = {
+        hexMap: JSON.parse(JSON.stringify(hexMap)),
+        cols: cols,
+        rows: rows
+      };
       history.length = historyIndex + 1;
-      history.push(JSON.parse(JSON.stringify(hexMap)));
+      history.push(state);
       historyIndex++;
     }
     function undo() {
       if (historyIndex > 0) {
         historyIndex--;
+        const state = history[historyIndex];
+        cols = state.cols;
+        rows = state.rows;
         hexMap.length = 0;
-        hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
+        hexMap.push(...JSON.parse(JSON.stringify(state.hexMap)));
         mapDirty = true;
+        recalcCenterOffsets();
         drawMap();
       }
     }
     function redo() {
       if (historyIndex < history.length - 1) {
         historyIndex++;
+        const state = history[historyIndex];
+        cols = state.cols;
+        rows = state.rows;
         hexMap.length = 0;
-        hexMap.push(...JSON.parse(JSON.stringify(history[historyIndex])));
+        hexMap.push(...JSON.parse(JSON.stringify(state.hexMap)));
         mapDirty = true;
+        recalcCenterOffsets();
         drawMap();
       }
     }
 
     /* ---------------------------------------------------------------------------
      * Group 5: Map Panning Functions
-     * Functions:
-     *   - moveMap
      * ------------------------------------------------------------------------- */
     function moveMap(dx, dy) {
       offsetX += dx;
@@ -464,23 +458,16 @@
 
     /* ---------------------------------------------------------------------------
      * Group 6: Animation Functions
-     * Functions:
-     *   - animate
      * ------------------------------------------------------------------------- */
     function animate() {
       const now = performance.now();
       const dt = (now - lastTime) / 1000;
       lastTime = now;
       let vx = 0, vy = 0;
-      //if (keysPressed['w'] || keysPressed['ArrowUp']) vy += 1;
-      //if (keysPressed['s'] || keysPressed['ArrowDown']) vy -= 1;
-      //if (keysPressed['a'] || keysPressed['ArrowLeft']) vx += 1;
-      //if (keysPressed['d'] || keysPressed['ArrowRight']) vx -= 1;
-      
-      if (keysPressed['ArrowUp']) vy += 1;
-      if (keysPressed['ArrowDown']) vy -= 1;
-      if (keysPressed['ArrowLeft']) vx += 1;
-      if (keysPressed['ArrowRight']) vx -= 1;
+      if (keysPressed['w'] || keysPressed['ArrowUp']) vy += 1;
+      if (keysPressed['s'] || keysPressed['ArrowDown']) vy -= 1;
+      if (keysPressed['a'] || keysPressed['ArrowLeft']) vx += 1;
+      if (keysPressed['d'] || keysPressed['ArrowRight']) vx -= 1;
       if (vx !== 0 || vy !== 0) {
         const len = Math.sqrt(vx * vx + vy * vy);
         vx /= len;
@@ -494,9 +481,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 7: Cell Selection and Object Helper Functions
-     * Functions:
-     *   - getCellAt
-     *   - isBlockedForObjects
      * ------------------------------------------------------------------------- */
     function getCellAt(x, y) {
       for (const cell of hexMap) {
@@ -518,10 +502,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 8: Hex Grid Calculation Helper Functions
-     * Functions:
-     *   - evenr_to_cube
-     *   - cubeDistance
-     *   - getCellsInRange
      * ------------------------------------------------------------------------- */
     function evenr_to_cube(cell) {
       let x = cell.col - Math.floor((cell.row + (cell.row & 1)) / 2);
@@ -542,9 +522,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 9: Cell Painting Functions
-     * Functions:
-     *   - paintCell
-     *   - markDirtyForCell
      * ------------------------------------------------------------------------- */
     function paintCell(cell) {
       if (selectedTool === 'bucket') {
@@ -592,7 +569,6 @@
         cellsToPaint.forEach(c => {
           const cellCube = evenr_to_cube(c);
           const distance = cubeDistance(centerCube, cellCube);
-          // Ustalamy prawdopodobieństwo malowania: im dalej od środka, tym mniejsze
           let p = 1 - (distance / bigBrushSize) * (bigBrushRoughness / 9);
           p = Math.max(0, p);
           if (Math.random() < p) {
@@ -626,30 +602,28 @@
 
     /* ---------------------------------------------------------------------------
      * Group 10: UI Update Functions
-     * Functions:
-     *   - updateListVisibility
      * ------------------------------------------------------------------------- */
     function updateListVisibility() {
+      const toolButtons = document.querySelectorAll('.tool-button');
       if (drawMode === 'color') {
         document.getElementById('terrainList').style.display = 'block';
         document.getElementById('objectList').style.display = 'none';
+        toolButtons.forEach(btn => btn.style.display = 'block');
       } else {
         document.getElementById('terrainList').style.display = 'none';
         document.getElementById('objectList').style.display = 'block';
+        document.getElementById('tool-big-pencil').style.display = 'none';
+        document.getElementById('tool-bucket').style.display = 'none';
       }
-      selectedTool = 'move';
-      canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
-      const toolButtons = document.querySelectorAll('.tool-button');
+      selectedTool = 'pencil';
+      canvas.style.cursor = `url('assets/cursors/pencil.svg') 0 32, auto`;
       toolButtons.forEach(btn => btn.classList.remove('selected'));
-      const moveBtn = document.querySelector(".tool-button[data-tool='move']");
-      if (moveBtn) moveBtn.classList.add('selected');
+      const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
+      if (pencilBtn) pencilBtn.classList.add('selected');
     }
 
     /* ---------------------------------------------------------------------------
      * Group 11: Image Loading Functions
-     * Functions:
-     *   - loadImage
-     *   - getImage
      * ------------------------------------------------------------------------- */
     function loadImage(imagePath, callback) {
       if (imageCache[imagePath]) {
@@ -677,9 +651,6 @@
 
     /* ---------------------------------------------------------------------------
      * Group 12: Map Initialization and Resizing Functions
-     * Functions:
-     *   - initHexMap
-     *   - updateHexSize
      * ------------------------------------------------------------------------- */
     function initHexMap() {
       hexMap.length = 0;
@@ -706,6 +677,38 @@
       recalcCenterOffsets();
       mapDirty = true;
       drawMap();
+    }
+
+    // Dodatkowe funkcje: isMapPainted oraz resizeMap – skalowanie istniejącej mapy
+    function isMapPainted() {
+      return hexMap.some(cell => cell.id !== 0 || cell.objectId !== 0);
+    }
+    function resizeMap(newCols, newRows) {
+      const newHexMap = [];
+      const scaleX = (cols - 1) / (newCols - 1);
+      const scaleY = (rows - 1) / (newRows - 1);
+      for (let newRow = 0; newRow < newRows; newRow++) {
+        for (let newCol = 0; newCol < newCols; newCol++) {
+          const oldCol = Math.round(newCol * scaleX);
+          const oldRow = Math.round(newRow * scaleY);
+          const clampedOldCol = Math.min(oldCol, cols - 1);
+          const clampedOldRow = Math.min(oldRow, rows - 1);
+          const oldCell = hexMap.find(cell => cell.col === clampedOldCol && cell.row === clampedOldRow);
+          if (oldCell) {
+            newHexMap.push({ col: newCol, row: newRow, id: oldCell.id, objectId: oldCell.objectId });
+          } else {
+            newHexMap.push({ col: newCol, row: newRow, id: 0, objectId: 0 });
+          }
+        }
+      }
+      cols = newCols;
+      rows = newRows;
+      hexMap.length = 0;
+      hexMap.push(...newHexMap);
+      mapDirty = true;
+      recalcCenterOffsets();
+      drawMap();
+      saveHistory();
     }
 
     /* =================== EVENT LISTENERS AND UI HANDLERS =================== */
@@ -778,19 +781,88 @@
     // Map Settings buttons
     resetButton.addEventListener('click', initHexMap);
     resizeButton.addEventListener('click', () => {
-      cols = parseInt(colsInput.value);
-      rows = parseInt(rowsInput.value);
-      if (cols < 5) cols = 5;
-      if (rows < 5) rows = 5;
-      if (cols > 200) cols = 200;
-      if (rows > 150) rows = 150;
-      initHexMap();
+      let newCols = parseInt(colsInput.value);
+      let newRows = parseInt(rowsInput.value);
+      if (newCols < 5) newCols = 5;
+      if (newRows < 5) newRows = 5;
+      if (newCols > 200) newCols = 200;
+      if (newRows > 150) newRows = 150;
+      if (isMapPainted()) {
+        resizeMap(newCols, newRows);
+      } else {
+        cols = newCols;
+        rows = newRows;
+        initHexMap();
+      }
     });
-    // Keyboard controls for panning and undo/redo
+
+    // Skróty klawiszowe
     document.addEventListener('keydown', (event) => {
-      //if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
-      if (['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.key)) {
+      const tag = event.target.tagName.toLowerCase();
+      if ((tag === 'input' || tag === 'textarea') && !(event.ctrlKey && (event.key === 'z' || event.key === 'y'))) {
+        return;
+      }
+      if (['w','a','s','d','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.key)) {
         keysPressed[event.key] = true;
+        event.preventDefault();
+      }
+      // Sprawdzamy widoczność konkretnego przycisku (display: block)
+      if (event.key === 'p') {
+        const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
+        if (pencilBtn && getComputedStyle(pencilBtn).display === 'block') {
+          selectedTool = 'pencil';
+          canvas.style.cursor = `url('assets/cursors/pencil.svg') 0 32, auto`;
+          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+          pencilBtn.classList.add('selected');
+          event.preventDefault();
+        }
+      }
+      if (event.key === 'b') {
+        const bigPencilBtn = document.querySelector(".tool-button[data-tool='big-pencil']");
+        if (bigPencilBtn && getComputedStyle(bigPencilBtn).display === 'block') {
+          selectedTool = 'big-pencil';
+          canvas.style.cursor = `url('assets/cursors/big-pencil.svg') 0 32, auto`;
+          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+          bigPencilBtn.classList.add('selected');
+          event.preventDefault();
+        }
+      }
+      if (event.key === 'm') {
+        const moveBtn = document.querySelector(".tool-button[data-tool='move']");
+        if (moveBtn && getComputedStyle(moveBtn).display === 'block') {
+          selectedTool = 'move';
+          canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
+          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+          moveBtn.classList.add('selected');
+          event.preventDefault();
+        }
+      }
+      if (event.key === 'e') {
+        const eraserBtn = document.querySelector(".tool-button[data-tool='eraser']");
+        if (eraserBtn && getComputedStyle(eraserBtn).display === 'block') {
+          selectedTool = 'eraser';
+          canvas.style.cursor = `url('assets/cursors/eraser.svg') 0 32, auto`;
+          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+          eraserBtn.classList.add('selected');
+          event.preventDefault();
+        }
+      }
+      if (event.key === 'f') {
+        const bucketBtn = document.querySelector(".tool-button[data-tool='bucket']");
+        if (bucketBtn && getComputedStyle(bucketBtn).display === 'block') {
+          selectedTool = 'bucket';
+          canvas.style.cursor = `url('assets/cursors/bucket.svg') 0 32, auto`;
+          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+          bucketBtn.classList.add('selected');
+          event.preventDefault();
+        }
+      }
+      if (event.key === '-' || (event.ctrlKey && event.key === '-')) {
+        zoomOutButton.click();
+        event.preventDefault();
+      }
+      if (event.key === '+' || (event.ctrlKey && event.key === '+')) {
+        zoomInButton.click();
         event.preventDefault();
       }
       if (event.ctrlKey && event.key === 'z') {
@@ -803,14 +875,27 @@
       }
     });
     document.addEventListener('keyup', (event) => {
-      //if (['w','ArrowUp','a','ArrowLeft','s','ArrowDown','d','ArrowRight'].includes(event.key)) {
-      if (['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.key)) {
+      const tag = event.target.tagName.toLowerCase();
+      if ((tag === 'input' || tag === 'textarea') && !(event.ctrlKey && (event.key === 'z' || event.key === 'y'))) {
+        return;
+      }
+      if (['w','a','s','d','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(event.key)) {
         keysPressed[event.key] = false;
         event.preventDefault();
       }
     });
+    canvas.addEventListener('wheel', (event) => {
+      if (event.ctrlKey) {
+        if (event.deltaY > 0) {
+          zoomOutButton.click();
+        } else if (event.deltaY < 0) {
+          zoomInButton.click();
+        }
+        event.preventDefault();
+      }
+    });
 
-    // UI Tool Buttons (in leftSidebar)
+    // UI Tool Buttons (w lewym panelu)
     const toolButtons = document.querySelectorAll('.tool-button');
     toolButtons.forEach(button => {
       button.addEventListener('click', () => {
@@ -820,18 +905,16 @@
         button.classList.add('selected');
       });
     });
-    // Switch mode (Colors / Objects) in the right sidebar
+    // Switch mode (Colors / Objects)
     switchModeButton.addEventListener('click', () => {
       drawMode = drawMode === 'color' ? 'object' : 'color';
       switchModeButton.textContent = `Mode: ${drawMode === 'color' ? 'Colors' : 'Objects'}`;
       updateListVisibility();
     });
-
-    // Add event listeners for bottom right Undo/Redo buttons
     document.getElementById('undoButton').addEventListener('click', undo);
     document.getElementById('redoButton').addEventListener('click', redo);
 
-    // Initialize Tile Lists (Terrain and Object) in the right sidebar
+    // Initialize Tile Lists (Terrain and Object) in right sidebar
     const terrainList = document.getElementById('terrainList');
     const objectList = document.getElementById('objectList');
     cellDefinitions.forEach((terrain, index) => {
@@ -883,9 +966,18 @@
 
     // IMPORT / EXPORT functionality
     exportButton.addEventListener('click', () => {
-      // Update title and description from the form inputs
-      title = mapTitleInput.value || title;
-      description = mapDescriptionInput.value || description;
+      const titleVal = mapTitleInput.value;
+      const descVal = mapDescriptionInput.value;
+      if (!/^[A-Za-z0-9-]{5,30}$/.test(titleVal)) {
+        alert("Title must be 5-30 characters long and contain only letters, numbers, and hyphen.");
+        return;
+      }
+      if (!/^[A-Za-z0-9-]{5,100}$/.test(descVal)) {
+        alert("Description must be 5-100 characters long and contain only letters, numbers, and hyphen.");
+        return;
+      }
+      title = titleVal || title;
+      description = descVal || description;
       const data = {
         title,
         description,
