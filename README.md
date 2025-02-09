@@ -10,7 +10,8 @@
 - [ ] Id in cell/object definitions
 - [ ] All objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
 - [ ] Refresh/quit prevent
-- [ ] Move cursor prevent on change site visibility 
+- [ ] Move cursor prevent on change site visibility
+- [ ] Scalling whole page x0.7
       
 # Version Beta 1.8:
 - [x] Better cursors look (white fill)
