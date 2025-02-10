@@ -12,6 +12,7 @@
 - [ ] Refresh/quit prevent
 - [ ] Move cursor prevent on change site visibility
 - [ ] Scalling whole page x0.7
+- [ ] Remove gaps - max zoom out
       
 # Version Beta 1.8:
 - [x] Better cursors look (white fill)
