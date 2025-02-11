@@ -511,7 +511,6 @@
         hexMap.length = 0;
         hexMap.push(...JSON.parse(JSON.stringify(state.hexMap)));
         mapDirty = true;
-        recalcCenterOffsets();
         drawMap();
       }
     }
@@ -524,7 +523,6 @@
         hexMap.length = 0;
         hexMap.push(...JSON.parse(JSON.stringify(state.hexMap)));
         mapDirty = true;
-        recalcCenterOffsets();
         drawMap();
       }
     }
