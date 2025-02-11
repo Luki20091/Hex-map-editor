@@ -117,7 +117,7 @@
     <button id="zoomOutButton" title="Zoom Out">
       <i class="fas fa-search-minus"></i>
     </button>
-    <input type="range" id="hexSize" min="2" max="45" value="25">
+    <input type="range" id="hexSize" min="2" max="50" value="19">
     <button id="zoomInButton" title="Zoom In">
       <i class="fas fa-search-plus"></i>
     </button>
@@ -289,7 +289,7 @@
         offCtx.fill(terrainGroups[terrainId]);
         if (gap) {
           offCtx.strokeStyle = borderColor;
-          offCtx.lineWidth = 1;
+          offCtx.lineWidth = 2;
           offCtx.stroke(terrainGroups[terrainId]);
         }
       }
@@ -399,7 +399,7 @@
       context.fill();
       if (gap) {
         context.strokeStyle = '#333333';
-        context.lineWidth = 1;
+        context.lineWidth = 2;
         context.stroke();
       }
     }
@@ -732,7 +732,11 @@
      * DODATKOWE FUNKCJE DLA TRYBU OBIEKTOWEGO
      * ------------------------------------------------------------------------- */
     function setCursor(toolName) {
-      canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 16 16, auto`;
+      if (drawMode === 'object') {
+        canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 16 16, auto`;
+      } else {
+        canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 2 30, auto`;
+      }
     }
     function selectObjectTool(tool, objectId, element) {
       selectedTool = tool;
@@ -856,7 +860,7 @@
       hexRadius = newSize;
       hexWidth = Math.sqrt(3) * hexRadius;
       hexHeight = 2 * hexRadius;
-      gap = (newSize > 3);
+      gap = (newSize > 10);
       isZooming = true;
       recalcCenterOffsets();
       mapDirty = true;
