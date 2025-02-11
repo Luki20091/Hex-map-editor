@@ -8,7 +8,8 @@
 - [ ] Move cursor prevent on change site visibility
 
 # Version Beta 1.9:
-- [ ] AI generator
+- [x] Img import
+- [x] AI generator
 - [x] Id in cell/object definitions
 - [x] All objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
 - [x] Refresh/quit prevent
