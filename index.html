@@ -56,7 +56,7 @@
     </button>
   </div>
 
-  <!-- Top Left Panel: Map Settings & Export Form -->
+  <!-- Top Left Panel: Map Settings, Export Form & Generator -->
   <div id="topLeft">
     <div class="map-settings">
       <div class="setting-item">
@@ -81,12 +81,19 @@
       </div>
       <div class="setting-item">
         <label for="mapDescription"><i class="fas fa-info-circle"></i> Description</label>
-        <input type="text" id="mapDescription" placeholder="Map description" minlength="5" maxlength="100" pattern="[A-Za-z0-9-]{5,100}" required>
+        <input type="text" id="mapDescription" placeholder="Map description" minlength="5" maxlength="100" pattern="[A-Za-z0-9-\s]{5,100}" required>
       </div>
       <div class="setting-item">
         <button id="exportButton" title="Export to JSON"><i class="fas fa-file-export"></i> Export</button>
         <button id="importButton" title="Import from JSON"><i class="fas fa-file-import"></i> Import</button>
         <input type="file" id="fileInput" style="display:none;">
+      </div>
+    </div>
+    <!-- Generator – tylko jeden przycisk AI -->
+    <div class="generate-form">
+      <div class="setting-item">
+        <button id="aiGenerateButton" title="Generate Map with AI"><i class="fas fa-robot"></i> AI Generate</button>
+        <button id="ImgImport" title="Import from Image"><i class="fas fa-file-image"></i> Img Import</button>
       </div>
     </div>
   </div>
@@ -242,7 +249,6 @@
     function getChunkKey(col, row) {
       return Math.floor(col / chunkSize) + '_' + Math.floor(row / chunkSize);
     }
-    // Wersja updateChunk – obliczamy granice na podstawie nowego hexRadius oraz (jeśli gap wyłączony) dodajemy dodatkowe piksele
     function updateChunk(chunkKey, chunkCells) {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       chunkCells.forEach(cell => {
@@ -408,13 +414,10 @@
      * Group 3: Map Drawing Functions
      * ------------------------------------------------------------------------- */
     function drawMap() {
-      // Wyłączamy antyaliasing, aby zminimalizować szczeliny
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBorder();
       if (mapDirty) {
-        // Zamiast przeliczać wszystkie chunki, tworzymy mapę chunków
-        // i aktualizujemy tylko te, które są widoczne.
         chunkCache.clear();
         chunkSize = computeChunkSize();
         const chunks = new Map();
@@ -425,8 +428,6 @@
           }
           chunks.get(key).push(cell);
         });
-        // Dla każdego chunku obliczamy jego granice (wg nowego hexRadius)
-        // i sprawdzamy, czy chunk jest widoczny na ekranie.
         chunks.forEach((cells, key) => {
           let tempMinX = Infinity, tempMinY = Infinity, tempMaxX = -Infinity, tempMaxY = -Infinity;
           cells.forEach(cell => {
@@ -440,18 +441,16 @@
           tempMinY -= hexRadius;
           tempMaxX += hexRadius;
           tempMaxY += hexRadius;
-          if (!gap) { // jeśli gap wyłączony, dodajemy dodatkowy margines
+          if (!gap) {
             tempMinX -= 2;
             tempMinY -= 2;
             tempMaxX += 2;
             tempMaxY += 2;
           }
-          // Obliczamy ekranowe współrzędne
           const screenMinX = tempMinX + canvas.width / 2 + offsetX;
           const screenMinY = tempMinY + canvas.height / 2 + offsetY;
           const screenMaxX = tempMaxX + canvas.width / 2 + offsetX;
           const screenMaxY = tempMaxY + canvas.height / 2 + offsetY;
-          // Jeśli chunka przynajmniej część jest widoczna na canvasie, aktualizujemy go:
           if (screenMaxX >= 0 && screenMinX <= canvas.width &&
               screenMaxY >= 0 && screenMinY <= canvas.height) {
             updateChunk(key, cells);
@@ -460,17 +459,14 @@
         updateSuperChunks();
         mapDirty = false;
       }
-      // Rysujemy zaktualizowane chunki (te, które zostały przeliczone)
       chunkCache.forEach(chunk => {
         const screenX = chunk.minX + canvas.width / 2 + offsetX;
         const screenY = chunk.minY + canvas.height / 2 + offsetY;
-        // Sprawdzamy, czy chunk jest widoczny
         if (screenX + chunk.width >= 0 && screenX <= canvas.width &&
             screenY + chunk.height >= 0 && screenY <= canvas.height) {
           ctx.drawImage(chunk.canvas, screenX, screenY);
         }
       });
-      // Rysowanie obiektów – tylko jeśli objectId i nationId są niezerowe.
       hexMap.forEach(cell => {
         if (cell.objectId && cell.nationId) {
           const obj = objectDefinitions[cell.objectId - 1];
@@ -812,6 +808,15 @@
     /* ---------------------------------------------------------------------------
      * Group 11: Image Loading Functions
      * ------------------------------------------------------------------------- */
+    function loadSatelliteImage(folder, index) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Nie udało się załadować obrazu: assets/ai/" + folder + "/" + index + ".png"));
+        img.src = "assets/ai/" + folder + "/" + index + ".png";
+      });
+    }
     function loadImage(imagePath, callback) {
       if (imageCache[imagePath]) {
         callback(imageCache[imagePath]);
@@ -835,10 +840,41 @@
     function getImage(imagePath) {
       return imageCache[imagePath];
     }
+    function getImageData(canvas) {
+      return canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    }
 
     /* ---------------------------------------------------------------------------
      * Group 12: Map Initialization and Resizing Functions
      * ------------------------------------------------------------------------- */
+    // Funkcja generująca proceduralną mapę wysokości metodą midpoint displacement
+    function generateProceduralHeightMap(size, roughness) {
+      let map = Array(size).fill(0).map(() => Array(size).fill(0));
+      // Inicjujemy narożniki
+      map[0][0] = Math.random();
+      map[0][size - 1] = Math.random();
+      map[size - 1][0] = Math.random();
+      map[size - 1][size - 1] = Math.random();
+      
+      function midpointDisplacement(plot) {
+        let subPlot = plot / 2;
+        if (subPlot < 1) return;
+        
+        for (let i = subPlot; i < size; i += subPlot) {
+          for (let j = subPlot; j < size; j += subPlot) {
+            let x = i - (subPlot / 2);
+            let y = j - (subPlot / 2);
+            let avg = (map[i - subPlot][j - subPlot] + map[i][j - subPlot] + map[i - subPlot][j] + map[i][j]) / 4;
+            map[x][y] = avg + (Math.random() - 0.5) * roughness;
+            map[x][y] = Math.max(0, Math.min(map[x][y], 1));
+          }
+        }
+        midpointDisplacement(subPlot);
+      }
+      midpointDisplacement(size);
+      return map;
+    }
+
     function initHexMap() {
       hexMap.length = 0;
       for (let row = 0; row < rows; row++) {
@@ -853,7 +889,8 @@
       saveHistory();
     }
     initHexMap();
-    // W updateHexSize zmieniamy hexRadius i ustawiamy gap w zależności od rozmiaru
+
+    // updateHexSize – zmiana hexRadius i ustawienie gap w zależności od rozmiaru
     let isZooming = false;
     let zoomDebounceTimer = null;
     function updateHexSize(newSize) {
@@ -865,7 +902,6 @@
       recalcCenterOffsets();
       mapDirty = true;
       drawMap();
-      // Po 200ms od ostatniej zmiany zoomu wykonujemy pełne przerysowanie
       clearTimeout(zoomDebounceTimer);
       zoomDebounceTimer = setTimeout(() => {
         isZooming = false;
@@ -943,6 +979,8 @@
       if (event.button === 0 && selectedTool === 'move') {
         isMousePanning = false;
         setCursor(selectedTool);
+        mapDirty = true;
+        drawMap();
       }
     });
     let previousTool = null;
@@ -962,6 +1000,8 @@
         isMiddleMousePanning = false;
         selectedTool = previousTool || 'move';
         setCursor(selectedTool);
+        mapDirty = true;
+        drawMap();
       }
     });
     canvas.addEventListener('mousemove', (event) => {
@@ -1231,7 +1271,6 @@
             if (cell.nationId === undefined) cell.nationId = 0;
             hexMap.push(cell);
           });
-          
           recalcCenterOffsets();
           mapDirty = true;
           drawMap();
@@ -1241,9 +1280,307 @@
       }
     });
 
+    /* ================= PROCEDURAL PERLIN/IMG HEX MAP GENERATOR ================= */
+
+    // ---------------------------
+    // FUNKCJE POMOCNICZE
+    // ---------------------------
+
+    // Generator seedowalnych liczb pseudolosowych (z wykorzystaniem domknięcia)
+    function createSeedablePRNG(seed) {
+      let _seed = seed % 233280;
+      function next() {
+        _seed = (_seed * 9301 + 49297) % 233280;
+        return _seed / 233280;
+      }
+      function nextInt(min, max) {
+        return Math.floor(next() * (max - min + 1)) + min;
+      }
+      return { next, nextInt };
+    }
+
+    // Losowa wartość zmiennoprzecinkowa wokół podanej bazy
+    function randomizeDecimal(base, range = 0.5) {
+      return base + (Math.random() * range - range / 2);
+    }
+
+    // Iloczyn skalarny dwóch wektorów (używany przy Perlin Noise)
+    function dotProduct(grad, dist) {
+      return grad[0] * dist[0] + grad[1] * dist[1];
+    }
+
+    // Liniowa interpolacja między a i b przy współczynniku t
+    function lerp(a, b, t) {
+      return a + t * (b - a);
+    }
+
+    // Funkcja easeInOutQuad – łagodne przejście
+    function easeInOutQuad(t) {
+      return t * t * (3 - 2 * t);
+    }
+
+
+    // ---------------------------
+    // GENERACJA MAPY PROCEDURALNEJ (PERLIN NOISE)
+    // ---------------------------
+
+    /**
+     * Funkcja generująca mapę opartą na Perlin Noise.
+     * @param {number} width - liczba kolumn mapy
+     * @param {number} height - liczba wierszy mapy
+     * @param {number} persistence - wpływ kolejnych oktaw
+     * @param {number} octaves - liczba oktaw
+     * @param {number} wavelengthValue - początkowa długość fali
+     * @param {object} prng - generator liczb pseudolosowych (wynik createSeedablePRNG)
+     * @returns {Array} dwuwymiarowa tablica wartości szumu
+     */
+    function perlinNoise(width, height, persistence, octaves, wavelengthValue, prng) {
+      const offsetX = parseInt(Math.random() * 500); // losowe przesunięcie X
+      const offsetZ = parseInt(Math.random() * 500); // losowe przesunięcie Z
+      const myAmplitude = 1;
+      const factor = 254; // skalowanie do zakresu 0-254
+
+      // Tworzenie gradientów
+      const gradients = new Array(width + 1);
+      for (let i = 0; i <= width; i++) {
+        gradients[i] = new Array(height + 1);
+        for (let j = 0; j <= height; j++) {
+          gradients[i][j] = [prng.next() * 2 - 1, prng.next() * 2 - 1];
+        }
+      }
+
+      const noise = new Array(width).fill(null).map(() => new Array(height).fill(0));
+
+      // Generowanie wartości Perlin Noise
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          let value = 0;
+          let k = x + offsetX;
+          let j = y + offsetZ;
+          let wavelength = wavelengthValue;
+          let amplitude = myAmplitude;
+
+          for (let o = 0; o < octaves; o++) {
+            const x0 = Math.floor(k / wavelength);
+            const x1 = x0 + 1;
+            const y0 = Math.floor(j / wavelength);
+            const y1 = y0 + 1;
+
+            const dot00 = dotProduct(gradients[x0 % width][y0 % height], [k / wavelength - x0, j / wavelength - y0]);
+            const dot01 = dotProduct(gradients[x0 % width][y1 % height], [k / wavelength - x0, j / wavelength - y1]);
+            const dot10 = dotProduct(gradients[x1 % width][y0 % height], [k / wavelength - x1, j / wavelength - y0]);
+            const dot11 = dotProduct(gradients[x1 % width][y1 % height], [k / wavelength - x1, j / wavelength - y1]);
+
+            const tx = easeInOutQuad(k / wavelength - x0);
+            const ty = easeInOutQuad(j / wavelength - y0);
+            const nx0 = lerp(dot00, dot10, tx);
+            const nx1 = lerp(dot01, dot11, tx);
+            const nxy = lerp(nx0, nx1, ty);
+
+            value += amplitude / 4 - Math.abs(nxy * amplitude);
+            wavelength = Math.max(wavelength / 2, 1);
+            amplitude *= persistence;
+          }
+
+          // Użycie globalnych zmiennych myPeaks oraz myExponent (ustalanych przed wywołaniem funkcji proceduralnej)
+          noise[x][y] = Math.max(0, Math.min(254, Math.floor(Math.pow((value + 1) / 2 + myPeaks, myExponent) * factor)));
+        }
+      }
+
+      return noise;
+    }
+
+    /**
+     * Klasyfikacja terenu na podstawie wartości szumu z Perlin Noise.
+     * @param {number} noiseValue
+     * @returns {number} identyfikator terenu
+     */
+    function classifyPerlinTerrain(noiseValue) {
+      if (noiseValue < 30) return 0; // Ocean
+      if (noiseValue < 62) return 1; // Woda
+      if (noiseValue < 77) return 4; // Wydmy
+      if (noiseValue < 117) return Math.random() < 0.99 ? 8 : 7;
+      if (noiseValue < 157) return Math.random() < 0.99 ? 7 : 8;
+      if (noiseValue < 207) return Math.random() < 0.99 ? 6 : 7;
+      if (noiseValue < 229) return Math.random() < 0.75 ? 9 : 6;
+      if (noiseValue < 234) return 11;
+      return 5;
+    }
+
+    /**
+     * Proceduralne generowanie mapy heksagonalnej na podstawie Perlin Noise.
+     * Używa globalnych zmiennych: cols, rows, hexMap, myPeaks, myExponent, mapDirty, saveHistory, drawMap.
+     */
+    function proceduralPerlinHexMap() {
+      // Ustalenie parametrów (możesz dostosować te wartości)
+      persistence = randomizeDecimal(0.65);
+      octaves = 5; // musi być liczbą całkowitą
+      wavelength = randomizeDecimal(120, 50);
+      myPeaks = randomizeDecimal(0.15, 0.1);
+      myExponent = randomizeDecimal(3.65);
+      seedValue = 61403935 + Math.floor(Math.random() * 1000);
+
+      console.log(`Generowanie mapy z parametrami:
+        Persistence: ${persistence.toFixed(2)}
+        Octaves: ${octaves}
+        Wavelength: ${wavelength.toFixed(2)}
+        Peaks: ${myPeaks.toFixed(2)}
+        Exponent: ${myExponent.toFixed(2)}
+        Seed: ${seedValue}
+      `);
+
+      const prng = createSeedablePRNG(seedValue);
+      const noiseMap = perlinNoise(cols, rows, persistence, octaves, wavelength, prng);
+
+      hexMap.forEach(cell => {
+        let noiseValue = noiseMap[cell.col][cell.row];
+        cell.id = classifyPerlinTerrain(noiseValue);
+        cell.objectId = 0;
+        cell.nationId = 0;
+      });
+
+      mapDirty = true;
+      saveHistory();
+      drawMap();
+    }
+
+
+    // ---------------------------
+    // IMPORT I PRZETWARZANIE OBRAZU SATELITARNEGO
+    // ---------------------------
+
+    /**
+     * Klasyfikacja terenu na podstawie koloru z realnego zdjęcia satelitarnego.
+     * Analizujemy m.in. jasność oraz "ciepło" koloru (różnicę r - b).
+     * Pomijamy obszary zimne (np. dominujące niebieskie) i przypisujemy:
+     * - 1: Woda
+     * - 7: Las/obszary rolnicze (zielony)
+     * - 4: Pustynia/skalist (cieplejsze odcienie)
+     * - 11: Obszary urbanistyczne (bardzo jasne i mało nasycone)
+     * W razie wątpliwości losujemy między możliwymi typami.
+     *
+     * @param {number} r - wartość czerwieni (0-255)
+     * @param {number} g - wartość zieleni (0-255)
+     * @param {number} b - wartość niebieskiego (0-255)
+     * @param {object} prng - generator liczb pseudolosowych (wynik createSeedablePRNG)
+     * @returns {number} identyfikator terenu
+     */
+    function classifyRealSatelliteTerrain(r, g, b, prng) {
+      const brightness = (r + g + b) / 3;
+      const warmth = r - b; // im wyższy, tym teren wydaje się cieplejszy
+
+      // Jeśli teren wygląda zimno lub dominują zimne odcienie, traktujemy go jako wodny
+      if (warmth < 10 || (b > r + 20 && b > g + 20)) {
+        return 1; // Woda
+      }
+      
+      // Obliczamy przybliżone nasycenie
+      const minRGB = Math.min(r, g, b);
+      const maxRGB = Math.max(r, g, b);
+      const saturation = maxRGB === 0 ? 0 : ((maxRGB - minRGB) / maxRGB) * 100;
+      
+      // Obszary bardzo jasne i mało nasycone uznajemy za urbanistyczne
+      if (brightness > 200 && saturation < 20) {
+        return 11; // Urban / zabudowania
+      }
+      
+      // Jeśli zielony dominuje, traktujemy teren jako las/obszary rolnicze
+      if (g > r && g > b) {
+        return 7; // Las / tereny rolnicze
+      }
+      
+      // Jeśli dominuje czerwień – teren pustynny lub skalisty
+      if (r > g && r > b) {
+        if (brightness > 180) {
+          return 11; // Możliwe odbicie w zabudowaniach
+        } else {
+          return 4; // Pustynia / teren skalisty
+        }
+      }
+      
+      // W przeciwnym przypadku losujemy między możliwymi typami (np. las lub obszar rolniczy)
+      return prng.next() < 0.5 ? 7 : 8;
+    }
+
+    /**
+     * Funkcja odczytująca dane z obrazu satelitarnego.
+     * Skaluje obraz tak, aby pokrył całą mapę (bazując na globalnych zmiennych cols i rows)
+     * i dla każdej komórki (w hexMap) przypisuje typ terenu na podstawie koloru.
+     *
+     * @param {HTMLImageElement} image - załadowany obraz satelitarny
+     */
+    function readMapFromSatelliteImage(image) {
+      // Utworzenie tymczasowego canvasu do odczytu danych piksela
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, image.width, image.height).data;
+      const seed = Date.now() % 100000;
+      const prng = createSeedablePRNG(seed);
+
+      // Dla każdej komórki w hexMap przeliczamy odpowiadający piksel w obrazie
+      hexMap.forEach(cell => {
+        // Skalujemy współrzędne komórki do rozmiarów obrazu
+        let pixelX = Math.floor((cell.col / (cols - 1)) * (image.width - 1));
+        let pixelY = Math.floor((cell.row / (rows - 1)) * (image.height - 1));
+
+        const index = (pixelY * image.width + pixelX) * 4;
+        const r = imageData[index];
+        const g = imageData[index + 1];
+        const b = imageData[index + 2];
+
+        cell.id = classifyRealSatelliteTerrain(r, g, b, prng);
+        cell.objectId = 0;
+        cell.nationId = 0;
+      });
+
+      mapDirty = true;
+      saveHistory();
+      drawMap();
+    }
+
+
+    // ---------------------------
+    // PODPIĘCIE PRZYCISKÓW (EVENT LISTENERS)
+    // ---------------------------
+
+    // Przycisk generujący proceduralnie mapę na podstawie Perlin Noise
+    document.getElementById('aiGenerateButton').addEventListener('click', proceduralPerlinHexMap);
+
+    // Przycisk umożliwiający import obrazu satelitarnego
+    document.getElementById('ImgImport').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+
+      input.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          const file = this.files[0];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+              readMapFromSatelliteImage(img);
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      input.click();
+    });
+
+
+
+    /* ===================================================================== */
     updateListVisibility();
     resizeCanvas();
-    zoomOutButton.click();
+    mapDirty = true;
+    drawMap();
   </script>
 </body>
 </html>
