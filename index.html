@@ -1,33 +1,67 @@
-<!--
-	ooooo        ooooo     ooo oooo    oooo ooooo
-	`888'        `888'     `8' `888   .8P'  `888'
-	 888          888       8   888  d8'     888
-	 888          888       8   88888[       888
-	 888          888       8   888`88b.     888
-	 888       o  `88.    .8'   888  `88b.   888
-	o888ooooood8    `YbodP'    o888o  o888o o888o
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <!-- Disable zooming on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.8</title>
+  <title>Hex Map Editor - BETA 1.9</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" type="text/css" href="assets/styles/desktop.css">
+  <!-- Dodatkowe style do centrowania przycisków w leftSidebarObjects -->
+  <style>
+    #leftSidebarObjects .tool-button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
   <!-- Main canvas for drawing the hex map -->
   <canvas id="hexCanvas"></canvas>
 
-  <!-- Left Sidebar: Tools -->
-  <div id="leftSidebar">
-    <button id="tool-move" class="tool-button" data-tool="move" title="Move (Pan)"><i class="fas fa-arrows-alt"></i></button>
-    <button id="tool-pencil" class="tool-button" data-tool="pencil" title="Pencil (Paint)"><i class="fas fa-pencil-alt"></i></button>
-    <button id="tool-big-pencil" class="tool-button" data-tool="big-pencil" title="Big Pencil (Area Paint)"><i class="fas fa-paint-brush"></i></button>
-    <button id="tool-bucket" class="tool-button" data-tool="bucket" title="Bucket (Fill)"><i class="fas fa-fill-drip"></i></button>
-    <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)"><i class="fas fa-eraser"></i></button>
+  <!-- Left Sidebar: Tools, Mode: Colors -->
+  <div id="leftSidebarCells" class="leftSidebar">
+    <button id="tool-move" class="tool-button" data-tool="move" title="Move (Pan)">
+      <i class="fas fa-arrows-alt"></i>
+    </button>
+    <button id="tool-pencil" class="tool-button" data-tool="pencil" title="Pencil (Paint)">
+      <i class="fas fa-pencil-alt"></i>
+    </button>
+    <button id="tool-big-pencil" class="tool-button" data-tool="big-pencil" title="Big Pencil (Area Paint)">
+      <i class="fas fa-paint-brush"></i>
+    </button>
+    <button id="tool-bucket" class="tool-button" data-tool="bucket" title="Bucket (Fill)">
+      <i class="fas fa-fill-drip"></i>
+    </button>
+  </div>
+
+  <!-- Left Sidebar: Tools, Mode: Objects -->
+  <div id="leftSidebarObjects" class="leftSidebar">
+    <button id="tool-move" class="tool-button" data-tool="move" title="Move (Pan)">
+      <i class="fas fa-arrows-alt"></i>
+    </button>
+    <button id="tool-city" class="tool-button" data-tool="city" title="City (Paint)">
+      <i class="fa-solid fa-city"></i>
+    </button>
+    <button id="tool-industry" class="tool-button" data-tool="industry" title="Industry (Paint)">
+      <i class="fa-solid fa-industry"></i>
+    </button>
+    <button id="tool-village" class="tool-button" data-tool="village" title="Village (Paint)">
+      <i class="fa-solid fa-house"></i>
+    </button>
+    <button id="tool-infantry" class="tool-button" data-tool="infantry" title="Infantry (Paint)">
+      <i class="fa-solid fa-1"></i>
+    </button>
+    <button id="tool-ranged" class="tool-button" data-tool="ranged" title="Ranged (Paint)">
+      <i class="fa-solid fa-2"></i>
+    </button>
+    <button id="tool-fast" class="tool-button" data-tool="fast" title="Fast (Paint)">
+      <i class="fa-solid fa-3"></i>
+    </button>
+    <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)">
+      <i class="fas fa-eraser"></i>
+    </button>
   </div>
 
   <!-- Top Left Panel: Map Settings & Export Form -->
@@ -51,12 +85,10 @@
     <div class="export-form">
       <div class="setting-item">
         <label for="mapTitle"><i class="fas fa-font"></i> Title</label>
-        <!-- Walidacja: tylko litery, cyfry oraz "-" -->
         <input type="text" id="mapTitle" placeholder="Map title" minlength="5" maxlength="30" pattern="[A-Za-z0-9-]{5,30}" required>
       </div>
       <div class="setting-item">
         <label for="mapDescription"><i class="fas fa-info-circle"></i> Description</label>
-        <!-- Walidacja: tylko litery, cyfry oraz "-" -->
         <input type="text" id="mapDescription" placeholder="Map description" minlength="5" maxlength="100" pattern="[A-Za-z0-9-]{5,100}" required>
       </div>
       <div class="setting-item">
@@ -69,9 +101,11 @@
 
   <!-- Right Sidebar: Tile Palette (Colors and Objects) -->
   <div id="rightSidebar">
-    <button id="switchModeButton" title="Switch between Colors and Objects"><i class="fas fa-exchange-alt"></i> Mode: Colors</button>
+    <button id="switchModeButton" title="Switch between Colors and Objects">
+      <i class="fas fa-exchange-alt"></i> Mode: Colors
+    </button>
     <div id="terrainList"></div>
-    <div id="objectList" style="display:none;"></div>
+    <div id="nationList" style="display:none;"></div>
   </div>
 
   <!-- Bottom Left Panel: Big Pencil Slider -->
@@ -80,7 +114,6 @@
       <label for="bigBrushSize"><i class="fas fa-brush"></i> Big Brush Size</label>
       <input type="range" id="bigBrushSize" min="1" max="10" value="1">
     </div>
-    <!-- Drugi suwak sterujący jaggedness -->
     <div class="slider-container">
       <label for="bigBrushRoughness"><i class="fas fa-random"></i> Jaggedness</label>
       <input type="range" id="bigBrushRoughness" min="0" max="9" value="0">
@@ -89,18 +122,32 @@
 
   <!-- Bottom Center Panel: Zoom Controls -->
   <div id="bottomCenter">
-    <button id="zoomOutButton" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-    <input type="range" id="hexSize" min="2" max="50" value="25">
-    <button id="zoomInButton" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+    <button id="zoomOutButton" title="Zoom Out">
+      <i class="fas fa-search-minus"></i>
+    </button>
+    <input type="range" id="hexSize" min="2" max="45" value="25">
+    <button id="zoomInButton" title="Zoom In">
+      <i class="fas fa-search-plus"></i>
+    </button>
   </div>
 
   <!-- Bottom Right Panel: Undo / Redo -->
   <div id="bottomRight">
-    <button id="undoButton" title="Undo"><i class="fas fa-undo"></i></button>
-    <button id="redoButton" title="Redo"><i class="fas fa-redo"></i></button>
+    <button id="undoButton" title="Undo">
+      <i class="fas fa-undo"></i>
+    </button>
+    <button id="redoButton" title="Redo">
+      <i class="fas fa-redo"></i>
+    </button>
   </div>
 
   <script>
+    // Prevent accidental refresh/quit
+    window.addEventListener("beforeunload", function(e) {
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
     /* =================== GLOBAL DECLARATIONS =================== */
     const canvas = document.getElementById('hexCanvas');
     const ctx = canvas.getContext('2d');
@@ -129,44 +176,54 @@
       bigBrushRoughness = parseInt(event.target.value);
     });
 
-    // Cell and Object Definitions
+    // Cell, Nation and Object Definitions
     const cellDefinitions = [
-      { name: "Ocean", color: "#325ddb" },
-      { name: "Water", color: "#3fabff" },
-      { name: "Desert", color: "#FFD700" },
-      { name: "Cactus Desert", color: "#CD853F" },
-      { name: "Dunes", color: "#F0E68C" },
-      { name: "Mountains", color: "#777777" },
-      { name: "Forest", color: "#1a7a1a" },
-      { name: "Meadow", color: "#00bb00" },
-      { name: "Grassland", color: "#7FFF00" },
-      { name: "Jungle", color: "#228B66" },
-      { name: "Swamp", color: "#3fabaa" },
-      { name: "Highlands", color: "#6B8E23" },
-      { name: "Snowfield", color: "#FFFFFF" },
-      { name: "Snowy Forest", color: "#87ddEB" },
-      { name: "Glacier", color: "#4682B4" }
+      { id: 0, name: "Ocean", color: "#325ddb" },
+      { id: 1, name: "Water", color: "#3fabff" },
+      { id: 2, name: "Desert", color: "#FFD700" },
+      { id: 3, name: "Cactus Desert", color: "#CD853F" },
+      { id: 4, name: "Dunes", color: "#F0E68C" },
+      { id: 5, name: "Mountains", color: "#777777" },
+      { id: 6, name: "Forest", color: "#1a7a1a" },
+      { id: 7, name: "Meadow", color: "#00bb00" },
+      { id: 8, name: "Grassland", color: "#7FFF00" },
+      { id: 9, name: "Jungle", color: "#228B66" },
+      { id: 10, name: "Swamp", color: "#3fabaa" },
+      { id: 11, name: "Highlands", color: "#6B8E23" },
+      { id: 12, name: "Snowfield", color: "#FFFFFF" },
+      { id: 13, name: "Snowy Forest", color: "#87ddEB" },
+      { id: 14, name: "Glacier", color: "#4682B4" }
+    ];
+    const nationDefinitions = [
+      { id: 1, name: "Unnational" },
+      { id: 2, name: "Poland" },
+      { id: 3, name: "Germany" }
     ];
     const objectDefinitions = [
-      { name: "Poland" },
-      { name: "Germany" }
+      { id: 1, name: "City" },
+      { id: 2, name: "Industry" },
+      { id: 3, name: "Village" },
+      { id: 4, name: "Infantry" },
+      { id: 5, name: "Ranged" },
+      { id: 6, name: "Fast" }
     ];
 
     let selectedTerrainId = 1;
     let selectedObjectId = 1;
+    let selectedNationId = 1;
     let drawMode = "color";
     let selectedTool = "move";
     let history = [];
     let historyIndex = -1;
     let cols = 29;
     let rows = 17;
-    const hexMap = []; // Każda komórka: { col, row, id, objectId }
+    const hexMap = [];
     let hexRadius = parseInt(hexSizeInput.value);
     let hexWidth = Math.sqrt(3) * hexRadius;
     let hexHeight = 2 * hexRadius;
-    let gap = Math.max(1, hexRadius * 0.1);
-    let hexHorizontalSpacing = hexWidth + gap;
-    let hexVerticalSpacing = hexHeight * 0.75 + gap;
+    let gap = true;
+    let hexHorizontalSpacing = hexWidth;
+    let hexVerticalSpacing = hexHeight * 0.75;
     let offsetX = 0;
     let offsetY = 0;
     let zoomLevel = 1;
@@ -176,15 +233,15 @@
     let title = "Title";
     let description = "Descripton";
 
-    // =================== CHUNKING VARIABLES ===================
-    let chunkSize = 10; 
+    // CHUNKING VARIABLES
+    let chunkSize = 10;
     let chunkCache = new Map();
     let superChunkCache = new Map();
     let mapDirty = true;
     let dirtyChunks = new Set();
 
     /* ---------------------------------------------------------------------------
-     * Group 2: Chunking Functions (bez zmian)
+     * Group 2: Chunking Functions
      * ------------------------------------------------------------------------- */
     function computeChunkSize() {
       const totalCells = cols * rows;
@@ -193,6 +250,7 @@
     function getChunkKey(col, row) {
       return Math.floor(col / chunkSize) + '_' + Math.floor(row / chunkSize);
     }
+    // Wersja updateChunk – obliczamy granice na podstawie nowego hexRadius oraz (jeśli gap wyłączony) dodajemy dodatkowe piksele
     function updateChunk(chunkKey, chunkCells) {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       chunkCells.forEach(cell => {
@@ -202,10 +260,10 @@
         if (pos.y < minY) minY = pos.y;
         if (pos.y > maxY) maxY = pos.y;
       });
-      minX -= hexRadius;
-      minY -= hexRadius;
-      maxX += hexRadius;
-      maxY += hexRadius;
+      minX = Math.floor(minX - hexRadius - (gap ? 0 : 2));
+      minY = Math.floor(minY - hexRadius - (gap ? 0 : 2));
+      maxX = Math.ceil(maxX + hexRadius + (gap ? 0 : 2));
+      maxY = Math.ceil(maxY + hexRadius + (gap ? 0 : 2));
       const width = maxX - minX;
       const height = maxY - minY;
       const offscreen = document.createElement('canvas');
@@ -232,16 +290,20 @@
         hexPath.closePath();
         terrainGroups[terrainId].addPath(hexPath);
       });
-      const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#333333';
+      const borderColor = getComputedStyle(document.documentElement)
+                             .getPropertyValue('--border-color').trim() || '#333333';
       for (const terrainId in terrainGroups) {
         offCtx.fillStyle = cellDefinitions[terrainId].color;
         offCtx.fill(terrainGroups[terrainId]);
-        offCtx.strokeStyle = borderColor;
-        offCtx.lineWidth = 2;
-        offCtx.stroke(terrainGroups[terrainId]);
+        if (gap) {
+          offCtx.strokeStyle = borderColor;
+          offCtx.lineWidth = 1;
+          offCtx.stroke(terrainGroups[terrainId]);
+        }
       }
       chunkCache.set(chunkKey, { canvas: offscreen, minX: minX, minY: minY, width: width, height: height });
     }
+
     function updateSuperChunks() {
       const groupingFactor = 2;
       const tempSuper = new Map();
@@ -265,6 +327,12 @@
           if (sc.minX + sc.width > groupMaxX) groupMaxX = sc.minX + sc.width;
           if (sc.minY + sc.height > groupMaxY) groupMaxY = sc.minY + sc.height;
         });
+        if (!gap) {
+          groupMinX -= 2;
+          groupMinY -= 2;
+          groupMaxX += 2;
+          groupMaxY += 2;
+        }
         const groupWidth = groupMaxX - groupMinX;
         const groupHeight = groupMaxY - groupMinY;
         const superCanvas = document.createElement('canvas');
@@ -319,13 +387,14 @@
         for (let col = -1; col <= cols; col++) {
           if (row === -1 || row === rows || col === -1 || col === cols) {
             const pos = evenr_to_pixel({ col, row });
-            const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim() || '#030a1c';
+            const bgColor = getComputedStyle(document.documentElement)
+                             .getPropertyValue('--bg-color').trim() || '#030a1c';
             drawHex(pos.x + canvas.width/2 + offsetX, pos.y + canvas.height/2 + offsetY, bgColor);
           }
         }
       }
     }
-    function drawHex(x, y, color = '#BBBBBB', context = ctx) {
+    function drawHex(x, y, color = '#325ddb', context = ctx) {
       context.beginPath();
       for (let i = 0; i < 6; i++) {
         const angle = Math.PI / 3 * i + Math.PI / 6;
@@ -336,18 +405,24 @@
       context.closePath();
       context.fillStyle = color;
       context.fill();
-      context.strokeStyle = '#333333';
-      context.lineWidth = 2;
-      context.stroke();
+      if (gap) {
+        context.strokeStyle = '#333333';
+        context.lineWidth = 1;
+        context.stroke();
+      }
     }
 
     /* ---------------------------------------------------------------------------
      * Group 3: Map Drawing Functions
      * ------------------------------------------------------------------------- */
     function drawMap() {
+      // Wyłączamy antyaliasing, aby zminimalizować szczeliny
+      ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBorder();
       if (mapDirty) {
+        // Zamiast przeliczać wszystkie chunki, tworzymy mapę chunków
+        // i aktualizujemy tylko te, które są widoczne.
         chunkCache.clear();
         chunkSize = computeChunkSize();
         const chunks = new Map();
@@ -358,41 +433,67 @@
           }
           chunks.get(key).push(cell);
         });
-        chunks.forEach((cells, key) => updateChunk(key, cells));
+        // Dla każdego chunku obliczamy jego granice (wg nowego hexRadius)
+        // i sprawdzamy, czy chunk jest widoczny na ekranie.
+        chunks.forEach((cells, key) => {
+          let tempMinX = Infinity, tempMinY = Infinity, tempMaxX = -Infinity, tempMaxY = -Infinity;
+          cells.forEach(cell => {
+            const pos = evenr_to_pixel(cell);
+            tempMinX = Math.min(tempMinX, pos.x);
+            tempMaxX = Math.max(tempMaxX, pos.x);
+            tempMinY = Math.min(tempMinY, pos.y);
+            tempMaxY = Math.max(tempMaxY, pos.y);
+          });
+          tempMinX -= hexRadius;
+          tempMinY -= hexRadius;
+          tempMaxX += hexRadius;
+          tempMaxY += hexRadius;
+          if (!gap) { // jeśli gap wyłączony, dodajemy dodatkowy margines
+            tempMinX -= 2;
+            tempMinY -= 2;
+            tempMaxX += 2;
+            tempMaxY += 2;
+          }
+          // Obliczamy ekranowe współrzędne
+          const screenMinX = tempMinX + canvas.width / 2 + offsetX;
+          const screenMinY = tempMinY + canvas.height / 2 + offsetY;
+          const screenMaxX = tempMaxX + canvas.width / 2 + offsetX;
+          const screenMaxY = tempMaxY + canvas.height / 2 + offsetY;
+          // Jeśli chunka przynajmniej część jest widoczna na canvasie, aktualizujemy go:
+          if (screenMaxX >= 0 && screenMinX <= canvas.width &&
+              screenMaxY >= 0 && screenMinY <= canvas.height) {
+            updateChunk(key, cells);
+          }
+        });
         updateSuperChunks();
         mapDirty = false;
       }
-      if (superChunkCache.size > 0) {
-        superChunkCache.forEach(chunk => {
-          const screenX = chunk.minX + canvas.width/2 + offsetX;
-          const screenY = chunk.minY + canvas.height/2 + offsetY;
-          if (screenX + chunk.width < 0 || screenX > canvas.width ||
-              screenY + chunk.height < 0 || screenY > canvas.height) return;
+      // Rysujemy zaktualizowane chunki (te, które zostały przeliczone)
+      chunkCache.forEach(chunk => {
+        const screenX = chunk.minX + canvas.width / 2 + offsetX;
+        const screenY = chunk.minY + canvas.height / 2 + offsetY;
+        // Sprawdzamy, czy chunk jest widoczny
+        if (screenX + chunk.width >= 0 && screenX <= canvas.width &&
+            screenY + chunk.height >= 0 && screenY <= canvas.height) {
           ctx.drawImage(chunk.canvas, screenX, screenY);
-        });
-      } else {
-        chunkCache.forEach(chunk => {
-          const screenX = chunk.minX + canvas.width/2 + offsetX;
-          const screenY = chunk.minY + canvas.height/2 + offsetY;
-          if (screenX + chunk.width < 0 || screenX > canvas.width ||
-              screenY + chunk.height < 0 || screenY > canvas.height) return;
-          ctx.drawImage(chunk.canvas, screenX, screenY);
-        });
-      }
+        }
+      });
+      // Rysowanie obiektów – tylko jeśli objectId i nationId są niezerowe.
       hexMap.forEach(cell => {
-        if (cell.objectId) {
+        if (cell.objectId && cell.nationId) {
           const obj = objectDefinitions[cell.objectId - 1];
-          if (obj) {
+          const nat = nationDefinitions[cell.nationId - 1];
+          if (obj && nat) {
             const pos = evenr_to_pixel(cell);
-            const screenX = pos.x + canvas.width/2 + offsetX;
-            const screenY = pos.y + canvas.height/2 + offsetY;
-            const flagPath = './assets/flags/' + obj.name + '.svg';
-            const image = getImage(flagPath);
+            const screenX = pos.x + canvas.width / 2 + offsetX;
+            const screenY = pos.y + canvas.height / 2 + offsetY;
+            const objPath = './assets/objects/' + nat.name.toLowerCase() + "/" + obj.name.toLowerCase() + '.svg';
+            const image = getImage(objPath);
             if (image) {
-              ctx.drawImage(image, screenX - hexRadius/2, screenY - hexRadius/2, hexRadius, hexRadius);
+              ctx.drawImage(image, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
             } else {
-              loadImage(flagPath, (loadedImage) => {
-                ctx.drawImage(loadedImage, screenX - hexRadius/2, screenY - hexRadius/2, hexRadius, hexRadius);
+              loadImage(objPath, (loadedImage) => {
+                ctx.drawImage(loadedImage, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
               });
             }
           }
@@ -401,7 +502,7 @@
     }
 
     /* ---------------------------------------------------------------------------
-     * Group 4: History Management Functions (zapisujemy także rows i cols)
+     * Group 4: History Management Functions
      * ------------------------------------------------------------------------- */
     function saveHistory() {
       const state = {
@@ -447,11 +548,11 @@
       offsetX += dx;
       offsetY += dy;
       const bounds = getMapBounds();
-      const minAllowedOffsetX = - (bounds.maxX + canvas.width/2);
-      const maxAllowedOffsetX = canvas.width/2 - bounds.minX;
+      const minAllowedOffsetX = - (bounds.maxX + canvas.width / 2);
+      const maxAllowedOffsetX = canvas.width / 2 - bounds.minX;
       offsetX = Math.min(Math.max(offsetX, minAllowedOffsetX), maxAllowedOffsetX);
-      const minAllowedOffsetY = - (bounds.maxY + canvas.height/2);
-      const maxAllowedOffsetY = canvas.height/2 - bounds.minY;
+      const minAllowedOffsetY = - (bounds.maxY + canvas.height / 2);
+      const maxAllowedOffsetY = canvas.height / 2 - bounds.minY;
       offsetY = Math.min(Math.max(offsetY, minAllowedOffsetY), maxAllowedOffsetY);
       drawMap();
     }
@@ -459,10 +560,11 @@
     /* ---------------------------------------------------------------------------
      * Group 6: Animation Functions
      * ------------------------------------------------------------------------- */
+    let lastTimeAnimation = performance.now();
     function animate() {
       const now = performance.now();
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
+      const dt = (now - lastTimeAnimation) / 1000;
+      lastTimeAnimation = now;
       let vx = 0, vy = 0;
       if (keysPressed['w'] || keysPressed['ArrowUp']) vy += 1;
       if (keysPressed['s'] || keysPressed['ArrowDown']) vy -= 1;
@@ -485,8 +587,8 @@
     function getCellAt(x, y) {
       for (const cell of hexMap) {
         const pos = evenr_to_pixel(cell);
-        const centerX = pos.x + canvas.width/2 + offsetX;
-        const centerY = pos.y + canvas.height/2 + offsetY;
+        const centerX = pos.x + canvas.width / 2 + offsetX;
+        const centerY = pos.y + canvas.height / 2 + offsetY;
         const dx = x - centerX;
         const dy = y - centerY;
         if (Math.sqrt(dx * dx + dy * dy) < hexRadius) {
@@ -524,74 +626,80 @@
      * Group 9: Cell Painting Functions
      * ------------------------------------------------------------------------- */
     function paintCell(cell) {
-      if (selectedTool === 'bucket') {
-        if (cell.id === selectedTerrainId) return;
-        const targetId = cell.id;
-        const queue = [cell];
-        while (queue.length) {
-          const current = queue.pop();
-          if (current.id === targetId) {
-            current.id = selectedTerrainId;
-            if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
-              current.objectId = 0;
-            }
-            const neighbors = hexMap.filter(c => {
-              const dcol = Math.abs(c.col - current.col);
-              const drow = Math.abs(c.row - current.row);
-              return dcol <= 1 && drow <= 1;
-            });
-            queue.push(...neighbors.filter(c => c.id === targetId));
-          }
+      if (drawMode === 'object') {
+        if (selectedTool === 'eraser') {
+          if (cell.objectId === 0 && cell.nationId === 0) return;
+          cell.objectId = 0;
+          cell.nationId = 0;
+        } else {
+          if (isBlockedForObjects(cell)) return;
+          if (cell.objectId === selectedObjectId && cell.nationId === selectedNationId) return;
+          cell.objectId = selectedObjectId;
+          cell.nationId = selectedNationId;
         }
         mapDirty = true;
         saveHistory();
         drawMap();
-      } else if (selectedTool === 'pencil') {
-        if (drawMode === 'color') {
+      } else {
+        if (selectedTool === 'bucket') {
+          if (cell.id === selectedTerrainId) return;
+          const targetId = cell.id;
+          const queue = [cell];
+          while (queue.length) {
+            const current = queue.pop();
+            if (current.id === targetId) {
+              current.id = selectedTerrainId;
+              if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
+                current.objectId = 0;
+                current.nationId = 0;
+              }
+              const neighbors = hexMap.filter(c => {
+                const dcol = Math.abs(c.col - current.col);
+                const drow = Math.abs(c.row - current.row);
+                return dcol <= 1 && drow <= 1;
+              });
+              queue.push(...neighbors.filter(c => c.id === targetId));
+            }
+          }
+          mapDirty = true;
+          saveHistory();
+          drawMap();
+        } else if (selectedTool === 'pencil') {
           if (cell.id === selectedTerrainId) return;
           if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
             cell.objectId = 0;
+            cell.nationId = 0;
           }
           cell.id = selectedTerrainId;
-        } else if (drawMode === 'object') {
-          if (!selectedObjectId) return;
-          if (isBlockedForObjects(cell)) return;
-          if (cell.objectId === selectedObjectId) return;
-          cell.objectId = selectedObjectId;
-        }
-        mapDirty = true;
-        saveHistory();
-        drawMap();
-      } else if (selectedTool === 'big-pencil') {
-        if (cell.id === selectedTerrainId) return;
-        const cellsToPaint = getCellsInRange(cell, bigBrushSize);
-        const centerCube = evenr_to_cube(cell);
-        cellsToPaint.forEach(c => {
-          const cellCube = evenr_to_cube(c);
-          const distance = cubeDistance(centerCube, cellCube);
-          let p = 1 - (distance / bigBrushSize) * (bigBrushRoughness / 9);
-          p = Math.max(0, p);
-          if (Math.random() < p) {
-            if (c.id !== selectedTerrainId) {
-              c.id = selectedTerrainId;
-              markDirtyForCell(c);
+          mapDirty = true;
+          saveHistory();
+          drawMap();
+        } else if (selectedTool === 'big-pencil') {
+          if (cell.id === selectedTerrainId) return;
+          const cellsToPaint = getCellsInRange(cell, bigBrushSize);
+          const centerCube = evenr_to_cube(cell);
+          cellsToPaint.forEach(c => {
+            const cellCube = evenr_to_cube(c);
+            const distance = cubeDistance(centerCube, cellCube);
+            let p = 1 - (distance / bigBrushSize) * (bigBrushRoughness / 9);
+            p = Math.max(0, p);
+            if (Math.random() < p) {
+              if (c.id !== selectedTerrainId) {
+                c.id = selectedTerrainId;
+                markDirtyForCell(c);
+              }
             }
-          }
-        });
-        mapDirty = true;
-        saveHistory();
-        drawMap();
-      } else if (selectedTool === 'eraser') {
-        if (drawMode === 'object') {
-          if (cell.objectId === 0) return;
-          cell.objectId = 0;
-        } else {
+          });
+          mapDirty = true;
+          saveHistory();
+          drawMap();
+        } else if (selectedTool === 'eraser') {
           if (cell.id === 0) return;
           cell.id = 0;
+          mapDirty = true;
+          saveHistory();
+          drawMap();
         }
-        mapDirty = true;
-        saveHistory();
-        drawMap();
       }
     }
     function markDirtyForCell(cell) {
@@ -607,20 +715,103 @@
       const toolButtons = document.querySelectorAll('.tool-button');
       if (drawMode === 'color') {
         document.getElementById('terrainList').style.display = 'block';
-        document.getElementById('objectList').style.display = 'none';
-        toolButtons.forEach(btn => btn.style.display = 'block');
+        document.getElementById('nationList').style.display = 'none';
+        document.getElementById('leftSidebarObjects').style.display = 'none';
+        document.getElementById('leftSidebarCells').style.display = 'flex';
+        selectedTool = 'pencil';
+        setCursor('pencil');
+        toolButtons.forEach(btn => btn.classList.remove('selected'));
+        const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
+        if (pencilBtn) pencilBtn.classList.add('selected');
       } else {
         document.getElementById('terrainList').style.display = 'none';
-        document.getElementById('objectList').style.display = 'block';
-        document.getElementById('tool-big-pencil').style.display = 'none';
-        document.getElementById('tool-bucket').style.display = 'none';
+        document.getElementById('nationList').style.display = 'block';
+        document.getElementById('leftSidebarObjects').style.display = 'flex';
+        document.getElementById('leftSidebarCells').style.display = 'none';
+        selectedTool = 'city';
+        setCursor('city');
+        toolButtons.forEach(btn => btn.classList.remove('selected'));
+        const cityBtn = document.querySelector(".tool-button[data-tool='city']");
+        if (cityBtn) cityBtn.classList.add('selected');
       }
-      selectedTool = 'pencil';
-      canvas.style.cursor = `url('assets/cursors/pencil.svg') 0 32, auto`;
-      toolButtons.forEach(btn => btn.classList.remove('selected'));
-      const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
-      if (pencilBtn) pencilBtn.classList.add('selected');
     }
+
+    /* ---------------------------------------------------------------------------
+     * DODATKOWE FUNKCJE DLA TRYBU OBIEKTOWEGO
+     * ------------------------------------------------------------------------- */
+    function setCursor(toolName) {
+      canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 16 16, auto`;
+    }
+    function selectObjectTool(tool, objectId, element) {
+      selectedTool = tool;
+      selectedObjectId = objectId;
+      setCursor(tool);
+      document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+      element.classList.add('selected');
+    }
+    document.querySelectorAll('#leftSidebarObjects .tool-button').forEach(button => {
+      button.addEventListener('click', function() {
+        const tool = button.dataset.tool;
+        const toolMapping = {
+          city: 1,
+          industry: 2,
+          village: 3,
+          infantry: 4,
+          ranged: 5,
+          fast: 6,
+          eraser: 0
+        };
+        let objectId = toolMapping[tool] || 0;
+        if (tool === 'eraser') {
+          selectedNationId = 0;
+        } else {
+          if (selectedNationId === 0) {
+            selectedNationId = nationDefinitions[0].id;
+          }
+        }
+        selectObjectTool(tool, objectId, button);
+      });
+    });
+    function highlightCell(cell) {
+      if (!cell) return;
+      if (isBlockedForObjects(cell)) return;
+      if (selectedObjectId && selectedNationId) {
+        const obj = objectDefinitions[selectedObjectId - 1];
+        const nat = nationDefinitions[selectedNationId - 1];
+        if (obj && nat) {
+          const pos = evenr_to_pixel(cell);
+          const screenX = pos.x + canvas.width / 2 + offsetX;
+          const screenY = pos.y + canvas.height / 2 + offsetY;
+          const objPath = `assets/objects/${nat.name.toLowerCase()}/${obj.name.toLowerCase()}.svg`;
+          const image = getImage(objPath);
+          if (image) {
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            ctx.drawImage(image, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
+            ctx.restore();
+          } else {
+            loadImage(objPath, function(loadedImage) {
+              ctx.save();
+              ctx.globalAlpha = 0.5;
+              ctx.drawImage(loadedImage, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
+              ctx.restore();
+            });
+          }
+        }
+      }
+    }
+    canvas.addEventListener('mousemove', function(e) {
+      if (drawMode === 'object' && !isPainting) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const cell = getCellAt(mouseX, mouseY);
+        drawMap();
+        if (cell) {
+          highlightCell(cell);
+        }
+      }
+    });
 
     /* ---------------------------------------------------------------------------
      * Group 11: Image Loading Functions
@@ -636,7 +827,7 @@
           const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
           const url = URL.createObjectURL(svgBlob);
           const image = new Image();
-          image.onload = function () {
+          image.onload = function() {
             imageCache[imagePath] = image;
             callback(image);
             URL.revokeObjectURL(url);
@@ -656,7 +847,7 @@
       hexMap.length = 0;
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          hexMap.push({ col, row, id: 0, objectId: 0 });
+          hexMap.push({ col, row, id: 0, objectId: 0, nationId: 0 });
         }
       }
       recalcCenterOffsets();
@@ -666,22 +857,55 @@
       saveHistory();
     }
     initHexMap();
+    // W updateHexSize zmieniamy hexRadius i ustawiamy gap w zależności od rozmiaru
+    let isZooming = false;
+    let zoomDebounceTimer = null;
     function updateHexSize(newSize) {
       hexRadius = newSize;
       hexWidth = Math.sqrt(3) * hexRadius;
       hexHeight = 2 * hexRadius;
-      const baseGap = Math.max(1, hexRadius * 0.1);
-      gap = baseGap / zoomLevel;
-      hexHorizontalSpacing = hexWidth + gap;
-      hexVerticalSpacing = hexHeight * 0.75 + gap;
+      gap = (newSize > 3);
+      isZooming = true;
       recalcCenterOffsets();
       mapDirty = true;
       drawMap();
+      // Po 200ms od ostatniej zmiany zoomu wykonujemy pełne przerysowanie
+      clearTimeout(zoomDebounceTimer);
+      zoomDebounceTimer = setTimeout(() => {
+        isZooming = false;
+        mapDirty = true;
+        drawMap();
+      }, 200);
     }
+    hexSizeInput.addEventListener('input', (event) => {
+      const newSize = parseInt(event.target.value);
+      if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+      zoomDebounceTimer = setTimeout(() => {
+        updateHexSize(newSize);
+        zoomDebounceTimer = null;
+      }, 50);
+    });
+    zoomInButton.addEventListener('click', () => {
+      let current = parseInt(hexSizeInput.value);
+      if (current < parseInt(hexSizeInput.max)) {
+        current++;
+        hexSizeInput.value = current;
+        zoomLevel *= 1.2;
+        updateHexSize(current);
+      }
+    });
+    zoomOutButton.addEventListener('click', () => {
+      let current = parseInt(hexSizeInput.value);
+      if (current > parseInt(hexSizeInput.min)) {
+        current--;
+        hexSizeInput.value = current;
+        zoomLevel /= 1.2;
+        updateHexSize(current);
+      }
+    });
 
-    // Dodatkowe funkcje: isMapPainted oraz resizeMap – skalowanie istniejącej mapy
     function isMapPainted() {
-      return hexMap.some(cell => cell.id !== 0 || cell.objectId !== 0);
+      return hexMap.some(cell => cell.id !== 0 || cell.objectId !== 0 || cell.nationId !== 0);
     }
     function resizeMap(newCols, newRows) {
       const newHexMap = [];
@@ -695,9 +919,9 @@
           const clampedOldRow = Math.min(oldRow, rows - 1);
           const oldCell = hexMap.find(cell => cell.col === clampedOldCol && cell.row === clampedOldRow);
           if (oldCell) {
-            newHexMap.push({ col: newCol, row: newRow, id: oldCell.id, objectId: oldCell.objectId });
+            newHexMap.push({ col: newCol, row: newRow, id: oldCell.id, objectId: oldCell.objectId, nationId: oldCell.nationId });
           } else {
-            newHexMap.push({ col: newCol, row: newRow, id: 0, objectId: 0 });
+            newHexMap.push({ col: newCol, row: newRow, id: 0, objectId: 0, nationId: 0 });
           }
         }
       }
@@ -712,22 +936,19 @@
     }
 
     /* =================== EVENT LISTENERS AND UI HANDLERS =================== */
-
-    // Panning with left mouse button when move tool is active
     let isMousePanning = false;
     canvas.addEventListener('mousedown', (event) => {
       if (event.button === 0 && selectedTool === 'move') {
         isMousePanning = true;
-        canvas.style.cursor = `url('assets/cursors/move2.svg') 0 32, auto`;
+        setCursor('move2');
       }
     });
     canvas.addEventListener('mouseup', (event) => {
       if (event.button === 0 && selectedTool === 'move') {
         isMousePanning = false;
-        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+        setCursor(selectedTool);
       }
     });
-    // Panning with middle mouse button
     let previousTool = null;
     let isMiddleMousePanning = false;
     canvas.addEventListener('mousedown', (event) => {
@@ -736,7 +957,7 @@
         previousTool = selectedTool;
         selectedTool = 'move';
         isMiddleMousePanning = true;
-        canvas.style.cursor = `url('assets/cursors/move2.svg') 0 32, auto`;
+        setCursor('move2');
       }
     });
     canvas.addEventListener('mouseup', (event) => {
@@ -744,7 +965,7 @@
         event.preventDefault();
         isMiddleMousePanning = false;
         selectedTool = previousTool || 'move';
-        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
+        setCursor(selectedTool);
       }
     });
     canvas.addEventListener('mousemove', (event) => {
@@ -753,7 +974,6 @@
       }
     });
 
-    // Handling painting on the canvas
     let isPainting = false;
     canvas.addEventListener('mousedown', (event) => {
       if (event.button !== 0) return;
@@ -778,7 +998,6 @@
       }
     });
 
-    // Map Settings buttons
     resetButton.addEventListener('click', initHexMap);
     resizeButton.addEventListener('click', () => {
       let newCols = parseInt(colsInput.value);
@@ -796,7 +1015,6 @@
       }
     });
 
-    // Skróty klawiszowe
     document.addEventListener('keydown', (event) => {
       const tag = event.target.tagName.toLowerCase();
       if ((tag === 'input' || tag === 'textarea') && !(event.ctrlKey && (event.key === 'z' || event.key === 'y'))) {
@@ -806,12 +1024,11 @@
         keysPressed[event.key] = true;
         event.preventDefault();
       }
-      // Sprawdzamy widoczność konkretnego przycisku (display: block)
       if (event.key === 'p') {
         const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
         if (pencilBtn && getComputedStyle(pencilBtn).display === 'block') {
           selectedTool = 'pencil';
-          canvas.style.cursor = `url('assets/cursors/pencil.svg') 0 32, auto`;
+          setCursor('pencil');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           pencilBtn.classList.add('selected');
           event.preventDefault();
@@ -821,7 +1038,7 @@
         const bigPencilBtn = document.querySelector(".tool-button[data-tool='big-pencil']");
         if (bigPencilBtn && getComputedStyle(bigPencilBtn).display === 'block') {
           selectedTool = 'big-pencil';
-          canvas.style.cursor = `url('assets/cursors/big-pencil.svg') 0 32, auto`;
+          setCursor('big-pencil');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           bigPencilBtn.classList.add('selected');
           event.preventDefault();
@@ -831,7 +1048,7 @@
         const moveBtn = document.querySelector(".tool-button[data-tool='move']");
         if (moveBtn && getComputedStyle(moveBtn).display === 'block') {
           selectedTool = 'move';
-          canvas.style.cursor = `url('assets/cursors/move.svg') 0 32, auto`;
+          setCursor('move');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           moveBtn.classList.add('selected');
           event.preventDefault();
@@ -841,7 +1058,7 @@
         const eraserBtn = document.querySelector(".tool-button[data-tool='eraser']");
         if (eraserBtn && getComputedStyle(eraserBtn).display === 'block') {
           selectedTool = 'eraser';
-          canvas.style.cursor = `url('assets/cursors/eraser.svg') 0 32, auto`;
+          setCursor('eraser');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           eraserBtn.classList.add('selected');
           event.preventDefault();
@@ -851,7 +1068,7 @@
         const bucketBtn = document.querySelector(".tool-button[data-tool='bucket']");
         if (bucketBtn && getComputedStyle(bucketBtn).display === 'block') {
           selectedTool = 'bucket';
-          canvas.style.cursor = `url('assets/cursors/bucket.svg') 0 32, auto`;
+          setCursor('bucket');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           bucketBtn.classList.add('selected');
           event.preventDefault();
@@ -895,17 +1112,17 @@
       }
     });
 
-    // UI Tool Buttons (w lewym panelu)
     const toolButtons = document.querySelectorAll('.tool-button');
     toolButtons.forEach(button => {
       button.addEventListener('click', () => {
-        selectedTool = button.dataset.tool;
-        canvas.style.cursor = `url('assets/cursors/${selectedTool}.svg') 0 32, auto`;
-        toolButtons.forEach(btn => btn.classList.remove('selected'));
-        button.classList.add('selected');
+        if (drawMode === 'color') {
+          selectedTool = button.dataset.tool;
+          setCursor(selectedTool);
+          toolButtons.forEach(btn => btn.classList.remove('selected'));
+          button.classList.add('selected');
+        }
       });
     });
-    // Switch mode (Colors / Objects)
     switchModeButton.addEventListener('click', () => {
       drawMode = drawMode === 'color' ? 'object' : 'color';
       switchModeButton.textContent = `Mode: ${drawMode === 'color' ? 'Colors' : 'Objects'}`;
@@ -914,9 +1131,8 @@
     document.getElementById('undoButton').addEventListener('click', undo);
     document.getElementById('redoButton').addEventListener('click', redo);
 
-    // Initialize Tile Lists (Terrain and Object) in right sidebar
     const terrainList = document.getElementById('terrainList');
-    const objectList = document.getElementById('objectList');
+    const nationList = document.getElementById('nationList');
     cellDefinitions.forEach((terrain, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -938,33 +1154,33 @@
         tile.classList.add('selected');
       }
     });
-    objectDefinitions.forEach((obj, index) => {
+    nationDefinitions.forEach((nation, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
-      tile.dataset.objectId = index + 1;
+      tile.dataset.nationId = nation.id;
       const flagContainer = document.createElement('div');
       flagContainer.classList.add('tile-flag');
       const flagImage = document.createElement('img');
-      const flagPath = './assets/flags/' + obj.name + '.svg';
+      const flagPath = './assets/flags/' + nation.name + '.svg';
       flagImage.src = flagPath;
-      flagImage.alt = `${obj.name} flag`;
+      flagImage.alt = `${nation.name} flag`;
       flagContainer.appendChild(flagImage);
       const label = document.createElement('span');
-      label.textContent = obj.name;
+      label.textContent = nation.name;
       tile.appendChild(flagContainer);
       tile.appendChild(label);
-      objectList.appendChild(tile);
+      nationList.appendChild(tile);
       tile.addEventListener('click', () => {
-        selectedObjectId = parseInt(tile.dataset.objectId);
-        document.querySelectorAll('#objectList .tile').forEach(t => t.classList.remove('selected'));
+        selectedNationId = parseInt(tile.dataset.nationId);
+        document.querySelectorAll('#nationList .tile').forEach(t => t.classList.remove('selected'));
         tile.classList.add('selected');
       });
-      if (index + 1 === selectedObjectId) {
+      if (index === 0) {
         tile.classList.add('selected');
+        selectedNationId = nation.id;
       }
     });
 
-    // IMPORT / EXPORT functionality
     exportButton.addEventListener('click', () => {
       const titleVal = mapTitleInput.value;
       const descVal = mapDescriptionInput.value;
@@ -984,6 +1200,7 @@
         cols,
         rows,
         cellDefinitions,
+        nationDefinitions,
         objectDefinitions,
         cells: hexMap
       };
@@ -1013,6 +1230,7 @@
             if (cell.row === undefined) cell.row = 0;
             if (cell.id === undefined) cell.id = 0;
             if (cell.objectId === undefined) cell.objectId = 0;
+            if (cell.nationId === undefined) cell.nationId = 0;
             hexMap.push(cell);
           });
           recalcCenterOffsets();
@@ -1024,37 +1242,9 @@
       }
     });
 
-    // ZOOM HANDLING WITH DEBOUNCING
-    let zoomDebounceTimer = null;
-    hexSizeInput.addEventListener('input', (event) => {
-      const newSize = parseInt(event.target.value);
-      if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
-      zoomDebounceTimer = setTimeout(() => {
-        updateHexSize(newSize);
-        zoomDebounceTimer = null;
-      }, 100);
-    });
-    zoomInButton.addEventListener('click', () => {
-      let current = parseInt(hexSizeInput.value);
-      if (current < parseInt(hexSizeInput.max)) {
-        current++;
-        hexSizeInput.value = current;
-        zoomLevel *= 1.2;
-        updateHexSize(current);
-      }
-    });
-    zoomOutButton.addEventListener('click', () => {
-      let current = parseInt(hexSizeInput.value);
-      if (current > parseInt(hexSizeInput.min)) {
-        current--;
-        hexSizeInput.value = current;
-        zoomLevel /= 1.2;
-        updateHexSize(current);
-      }
-    });
-
     updateListVisibility();
     resizeCanvas();
+    zoomOutButton.click();
   </script>
 </body>
 </html>

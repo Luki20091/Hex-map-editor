@@ -31,7 +31,7 @@ canvas {
 }
 
 /* Left Sidebar: Tools (vertically centered) */
-#leftSidebar {
+.leftSidebar {
     position: fixed;
     top: 50%;
     left: 0;
@@ -46,7 +46,7 @@ canvas {
     margin: 0 10px;
     border-radius: 4px;
 }
-#leftSidebar .tool-button {
+.leftSidebar .tool-button {
     background: none;
     border: none;
     color: var(--text-color);
@@ -54,7 +54,7 @@ canvas {
     margin: 10px 0;
     cursor: pointer;
 }
-#leftSidebar .tool-button.selected {
+.leftSidebar .tool-button.selected {
     color: var(--accent-color);
 }
 
@@ -68,7 +68,7 @@ canvas {
     padding: 10px;
     z-index: 10;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
     border-radius: 4px;
 }
