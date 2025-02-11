@@ -4,6 +4,8 @@
 # Version Beta 2.0:
 - [ ] Definitely better styling
 - [ ] Favicon
+- [ ] Scalling whole page x0.7
+- [ ] Move cursor prevent on change site visibility
 
 # Version Beta 1.9:
 - [ ] Img to map auto generator
@@ -11,8 +13,6 @@
 - [ ] Id in cell/object definitions
 - [ ] All objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
 - [ ] Refresh/quit prevent
-- [ ] Move cursor prevent on change site visibility
-- [ ] Scalling whole page x0.7
 - [ ] Remove gaps - max zoom out
       
 # Version Beta 1.8:
