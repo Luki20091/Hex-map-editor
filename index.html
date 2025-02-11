@@ -1184,9 +1184,9 @@
         alert("Title must be 5-30 characters long and contain only letters, numbers, and hyphen.");
         return;
       }
-      if (!/^[A-Za-z0-9-]{5,100}$/.test(descVal)) {
-        alert("Description must be 5-100 characters long and contain only letters, numbers, and hyphen.");
-        return;
+      if (!/^[A-Za-z0-9-\s]{5,100}$/.test(descVal)) {
+          alert("Description must be 5-100 characters long and contain only letters, numbers, hyphen, and spaces.");
+          return;
       }
       title = titleVal || title;
       description = descVal || description;
@@ -1205,7 +1205,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'hexMap.json';
+      a.download = title + '.json';
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -1220,6 +1220,8 @@
           const json = JSON.parse(e.target.result);
           cols = json.cols || cols;
           rows = json.rows || rows;
+          mapTitleInput.value = json.title || "";
+          mapDescriptionInput.value = json.description || "";
           hexMap.length = 0;
           json.cells.forEach(cell => {
             if (cell.col === undefined) cell.col = 0;
@@ -1229,6 +1231,7 @@
             if (cell.nationId === undefined) cell.nationId = 0;
             hexMap.push(cell);
           });
+          
           recalcCenterOffsets();
           mapDirty = true;
           drawMap();
