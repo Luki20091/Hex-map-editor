@@ -6,6 +6,7 @@
 - [ ] Favicon
 
 # Version Beta 1.9:
+- [ ] Img to map auto generator
 - [ ] Change mode icon - ?
 - [ ] Id in cell/object definitions
 - [ ] All objects (choose specific National/Unnational) (choose specific tool: units 3 types, cities, villages, ...)
