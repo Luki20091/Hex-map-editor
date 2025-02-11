@@ -4,8 +4,8 @@
 # Version Beta 2.0:
 - [ ] Definitely better styling
 - [ ] Favicon
-- [ ] Scalling whole page x0.7
 - [ ] Move cursor prevent on change site visibility
+- [x] Scalling whole page x0.7
 
 # Version Beta 1.9:
 - [x] Img import
