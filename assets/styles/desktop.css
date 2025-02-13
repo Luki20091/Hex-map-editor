@@ -65,7 +65,7 @@ canvas {
 }
 .leftSidebar .tool-button:hover {
     margin-left: 8px;
-    opacity: 0.9;
+    opacity: 0.8;
 }
 
 /* Top Menu: Map Settings & Export Form (arranged horizontally) */
