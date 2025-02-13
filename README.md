@@ -5,6 +5,7 @@
 
 ### Beta 2.0  
 - [ ] Improved overall UI styling (final adjustments pending)  
+- [x] UI tools hover styling
 - [ ] Added favicon support  
 - [ ] Prevented unintended cursor movement when switching browser tabs  
 - [x] Adjusted global scaling (0.7×) for better readability  
