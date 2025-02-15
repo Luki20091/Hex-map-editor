@@ -9,7 +9,7 @@
 - [ ] Prevented unintended cursor movement when switching browser tabs  
 
 ### Beta 2.0  
-- [ ] Team tress UI
+- [ ] Team trees UI
 - [x] UI tools hover styling
 - [x] Adjusted global scaling (0.7×) for better readability  
 
