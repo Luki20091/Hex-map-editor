@@ -1397,14 +1397,18 @@
     function classifyPerlinTerrain(noiseValue) {
       if (noiseValue < 25) return 0; // Ocean
       if (noiseValue < 62) return 1; // Woda
-      if (noiseValue < 77) return 4; // Wydmy
-      if (noiseValue < 117) return Math.random() < 0.99 ? 8 : 7;
+      if (noiseValue < 73) return 4; // Wydmy
+      if (noiseValue < 100) return 8;
+      if (noiseValue < 130) return Math.random() < 0.99 ? 8 : 7;
       if (noiseValue < 157) return Math.random() < 0.99 ? 7 : 8;
       if (noiseValue < 198) return Math.random() < 0.99 ? 6 : 7;
       if (noiseValue < 208) return Math.random() < 0.40 ? 9 : 6;
       if (noiseValue < 227) return 11;
-      if (noiseValue < 247) return 5;
-      if (noiseValue < 255) return 15;
+      if (noiseValue < 245) return 5;
+      if (noiseValue < 251) return 15;
+      if (noiseValue < 252) return 5;
+      if (noiseValue < 253) return 15;
+      if (noiseValue < 254) return Math.random() < 0.40 ? 15 : 16;
       return 16;
     }
 
@@ -1414,8 +1418,8 @@
      */
     function proceduralPerlinHexMap() {
       persistence = randomizeDecimal(0.55);
-      octaves = 5; 
-      wavelength = randomizeDecimal(140, 20);
+      octaves = 5.5; 
+      wavelength = 125 + randomizeDecimal(Math.max(cols, rows) / 7, 20);
       myPeaks = randomizeDecimal(0.15, 0.1);
       myExponent = randomizeDecimal(3.65);
       seedValue = 61403935 + Math.floor(Math.random() * 1000);
