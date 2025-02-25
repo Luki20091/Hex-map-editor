@@ -33,23 +33,8 @@
     <button id="tool-move" class="tool-button" data-tool="move" title="Move (Pan)">
       <i class="fas fa-arrows-alt"></i>
     </button>
-    <button id="tool-city" class="tool-button" data-tool="city" title="City (Paint)">
-      <i class="fa-solid fa-city"></i>
-    </button>
-    <button id="tool-industry" class="tool-button" data-tool="industry" title="Industry (Paint)">
-      <i class="fa-solid fa-industry"></i>
-    </button>
-    <button id="tool-village" class="tool-button" data-tool="village" title="Village (Paint)">
-      <i class="fa-solid fa-house"></i>
-    </button>
-    <button id="tool-infantry" class="tool-button" data-tool="infantry" title="Infantry (Paint)">
-      <i class="fa-solid fa-1"></i>
-    </button>
-    <button id="tool-ranged" class="tool-button" data-tool="ranged" title="Ranged (Paint)">
-      <i class="fa-solid fa-2"></i>
-    </button>
-    <button id="tool-fast" class="tool-button" data-tool="fast" title="Fast (Paint)">
-      <i class="fa-solid fa-3"></i>
+    <button id="tool-pencil" class="tool-button" data-tool="pencil" title="Pencil (Paint)">
+      <i class="fas fa-pencil-alt"></i>
     </button>
     <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)">
       <i class="fas fa-eraser"></i>
@@ -239,6 +224,17 @@
     let superChunkCache = new Map();
     let mapDirty = true;
     let dirtyChunks = new Set();
+
+    /* ---------------------------------------------------------------------------
+     * Funkcje setCursor i setTool – Ustawiają kursor oraz aktualne narzędzie
+     * ------------------------------------------------------------------------- */
+    function setCursor(toolName) {
+      canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 2 30, auto`;
+    }
+    function setTool(toolName) {
+      selectedTool = toolName;
+      setCursor(toolName);
+    }
 
     /* ---------------------------------------------------------------------------
      * Group 2: Chunking Functions
@@ -618,11 +614,14 @@
           if (cell.objectId === 0 && cell.nationId === 0) return;
           cell.objectId = 0;
           cell.nationId = 0;
-        } else {
+        } else if (selectedTool === 'pencil') {
           if (isBlockedForObjects(cell)) return;
           if (cell.objectId === selectedObjectId && cell.nationId === selectedNationId) return;
           cell.objectId = selectedObjectId;
           cell.nationId = selectedNationId;
+          mapDirty = true;
+          saveHistory();
+          drawMap();
         }
         mapDirty = true;
         saveHistory();
@@ -705,62 +704,44 @@
         document.getElementById('nationList').style.display = 'none';
         document.getElementById('leftSidebarObjects').style.display = 'none';
         document.getElementById('leftSidebarCells').style.display = 'flex';
-        selectedTool = 'pencil';
-        setCursor('pencil');
+        setTool('pencil');
         toolButtons.forEach(btn => btn.classList.remove('selected'));
-        const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
+        const pencilBtn = document.querySelector("#leftSidebarCells .tool-button[data-tool='pencil']");
         if (pencilBtn) pencilBtn.classList.add('selected');
       } else {
         document.getElementById('terrainList').style.display = 'none';
         document.getElementById('nationList').style.display = 'block';
         document.getElementById('leftSidebarObjects').style.display = 'flex';
         document.getElementById('leftSidebarCells').style.display = 'none';
-        selectedTool = 'city';
-        setCursor('city');
+        setTool('pencil');
         toolButtons.forEach(btn => btn.classList.remove('selected'));
-        const cityBtn = document.querySelector(".tool-button[data-tool='city']");
-        if (cityBtn) cityBtn.classList.add('selected');
+        const pencilBtn = document.querySelector("#leftSidebarObjects .tool-button[data-tool='pencil']");
+        if (pencilBtn) pencilBtn.classList.add('selected');
       }
     }
 
     /* ---------------------------------------------------------------------------
      * DODATKOWE FUNKCJE DLA TRYBU OBIEKTOWEGO
      * ------------------------------------------------------------------------- */
-    function setCursor(toolName) {
-      if (drawMode === 'object') {
-        canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 16 16, auto`;
-      } else {
-        canvas.style.cursor = `url('assets/cursors/${toolName}.svg') 2 30, auto`;
-      }
-    }
-    function selectObjectTool(tool, objectId, element) {
-      selectedTool = tool;
-      selectedObjectId = objectId;
-      setCursor(tool);
-      document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
+    function selectObjectTool(tool, element) {
+      setTool(tool);
+      document.querySelectorAll('#leftSidebarObjects .tool-button').forEach(btn => btn.classList.remove('selected'));
       element.classList.add('selected');
     }
     document.querySelectorAll('#leftSidebarObjects .tool-button').forEach(button => {
       button.addEventListener('click', function() {
         const tool = button.dataset.tool;
-        const toolMapping = {
-          city: 1,
-          industry: 2,
-          village: 3,
-          infantry: 4,
-          ranged: 5,
-          fast: 6,
-          eraser: 0
-        };
-        let objectId = toolMapping[tool] || 0;
-        if (tool === 'eraser') {
-          selectedNationId = 0;
-        } else {
-          if (selectedNationId === 0) {
-            selectedNationId = nationDefinitions[0].id;
+        // Tylko narzędzia: pencil, move, eraser są dostępne
+        if (tool === 'pencil' || tool === 'move' || tool === 'eraser') {
+          selectObjectTool(tool, button);
+          if (tool === 'eraser') {
+            selectedNationId = 0;
+          } else {
+            if (selectedNationId === 0) {
+              selectedNationId = nationDefinitions[0].id;
+            }
           }
         }
-        selectObjectTool(tool, objectId, button);
       });
     });
     function highlightCell(cell) {
@@ -775,18 +756,30 @@
           const screenY = pos.y + canvas.height / 2 + offsetY;
           const objPath = `assets/objects/${nat.name.toLowerCase()}/${obj.name.toLowerCase()}.svg`;
           const image = getImage(objPath);
+          ctx.save();
+          ctx.globalAlpha = 0.5;
           if (image) {
-            ctx.save();
-            ctx.globalAlpha = 0.5;
             ctx.drawImage(image, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
-            ctx.restore();
           } else {
             loadImage(objPath, function(loadedImage) {
-              ctx.save();
-              ctx.globalAlpha = 0.5;
               ctx.drawImage(loadedImage, screenX - hexRadius / 2, screenY - hexRadius / 2, hexRadius, hexRadius);
-              ctx.restore();
             });
+          }
+          ctx.restore();
+          // Podświetlenie – jeśli komórka należy do aktualnie wybranej drużyny
+          if (cell.teamId === activeTeamId) {
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "blue";
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = Math.PI / 3 * i + Math.PI / 6;
+              const xOffset = screenX + Math.cos(angle) * hexRadius;
+              const yOffset = screenY + Math.sin(angle) * hexRadius;
+              if (i === 0) ctx.moveTo(xOffset, yOffset);
+              else ctx.lineTo(xOffset, yOffset);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
         }
       }
@@ -1062,18 +1055,14 @@
       if (event.key === 'p') {
         const pencilBtn = document.querySelector(".tool-button[data-tool='pencil']");
         if (pencilBtn && getComputedStyle(pencilBtn).display === 'block') {
-          selectedTool = 'pencil';
-          setCursor('pencil');
-          document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
-          pencilBtn.classList.add('selected');
+          setTool('pencil');
           event.preventDefault();
         }
       }
       if (event.key === 'b') {
         const bigPencilBtn = document.querySelector(".tool-button[data-tool='big-pencil']");
         if (bigPencilBtn && getComputedStyle(bigPencilBtn).display === 'block') {
-          selectedTool = 'big-pencil';
-          setCursor('big-pencil');
+          setTool('big-pencil');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           bigPencilBtn.classList.add('selected');
           event.preventDefault();
@@ -1082,8 +1071,7 @@
       if (event.key === 'm') {
         const moveBtn = document.querySelector(".tool-button[data-tool='move']");
         if (moveBtn && getComputedStyle(moveBtn).display === 'block') {
-          selectedTool = 'move';
-          setCursor('move');
+          setTool('move');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           moveBtn.classList.add('selected');
           event.preventDefault();
@@ -1092,8 +1080,7 @@
       if (event.key === 'e') {
         const eraserBtn = document.querySelector(".tool-button[data-tool='eraser']");
         if (eraserBtn && getComputedStyle(eraserBtn).display === 'block') {
-          selectedTool = 'eraser';
-          setCursor('eraser');
+          setTool('eraser');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           eraserBtn.classList.add('selected');
           event.preventDefault();
@@ -1102,8 +1089,7 @@
       if (event.key === 'f') {
         const bucketBtn = document.querySelector(".tool-button[data-tool='bucket']");
         if (bucketBtn && getComputedStyle(bucketBtn).display === 'block') {
-          selectedTool = 'bucket';
-          setCursor('bucket');
+          setTool('bucket');
           document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('selected'));
           bucketBtn.classList.add('selected');
           event.preventDefault();
@@ -1151,8 +1137,7 @@
     toolButtons.forEach(button => {
       button.addEventListener('click', () => {
         if (drawMode === 'color') {
-          selectedTool = button.dataset.tool;
-          setCursor(selectedTool);
+          setTool(button.dataset.tool);
           toolButtons.forEach(btn => btn.classList.remove('selected'));
           button.classList.add('selected');
         }
@@ -1513,7 +1498,7 @@
      * Skaluje obraz tak, aby pokrył całą mapę (bazując na globalnych zmiennych cols i rows)
      * i dla każdej komórki (w hexMap) przypisuje typ terenu na podstawie koloru.
      *
-     * @param {HTMLImageElement} image - załadowany obraz satelitarny
+     * @param {HTMLImageElement} image - załadowany obraz satelitarne
      */
     function readMapFromSatelliteImage(image) {
       // Utworzenie tymczasowego canvasu do odczytu danych piksela
