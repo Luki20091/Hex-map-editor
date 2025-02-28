@@ -18,7 +18,7 @@
 - [x] Implemented image import functionality  
 - [x] Integrated AI-generated map support  
 - [x] Introduced unique IDs in cell and object definitions  
-- [x] Enabled selection of national/universal settings and specific tools (units, cities, villages, etc.)  
+- [x] Added objects (units, cities, villages, etc.)  
 - [x] Added refresh/quit prevention to avoid accidental map loss  
 - [x] Eliminated visual gaps at maximum zoom-out  
 
