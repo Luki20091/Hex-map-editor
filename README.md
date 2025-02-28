@@ -10,6 +10,7 @@
 
 ### Beta 2.0  
 - [ ] Team trees UI - infinity teams
+- [ ] isBlockedForObjects includes added terrains
 - [x] UI tools hover styling
 - [x] Adjusted global scaling (0.7×) for better readability  
 
