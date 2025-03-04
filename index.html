@@ -39,6 +39,7 @@
     <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)">
       <i class="fas fa-eraser"></i>
     </button>
+    <div id="objectsList"></div>
   </div>
 
   <!-- Top Left Panel: Map Settings, Export Form & Generator -->
@@ -87,7 +88,10 @@
       <i class="fas fa-exchange-alt"></i> Mode: Colors
     </button>
     <div id="terrainList"></div>
-    <div id="nationList" style="display:none;"></div>
+    <div id="nationList" style="display:none;">
+      <button id="addTeam">Dodaj drużynę</button>
+      <div id="teamsContainer"></div>
+    </div>
   </div>
 
   <!-- Bottom Left Panel: Big Pencil Slider -->
@@ -123,7 +127,7 @@
     </button>
   </div>
 
-  <script>
+  <script defer>
     // Prevent accidental refresh/quit
     window.addEventListener("beforeunload", function(e) {
       e.preventDefault();
@@ -179,11 +183,30 @@
       { id: 13, name: "Snowy Forest", color: "#87ddEB" },
       { id: 14, name: "Glacier", color: "#4682B4" }
     ];
-    const nationDefinitions = [
+
+    const nationDefinitions = [ 
       { id: 1, name: "Unnational" },
-      { id: 2, name: "Poland" },
-      { id: 3, name: "Germany" }
+      { id: 2, name: "UN" },
+      { id: 3, name: "Poland" },
+      { id: 4, name: "Germany" },
+      { id: 5, name: "Nazi-Germany" },
+      { id: 6, name: "England" },
+      { id: 8, name: "Royal-England" },
+      { id: 7, name: "UK" },
+      { id: 9, name: "France" },
+      { id: 10, name: "Gallic" },
+      { id: 11, name: "Greece" },
+      { id: 12, name: "Italy" },
+      { id: 13, name: "Teutonic" },
+      { id: 14, name: "Rome" },
+      { id: 15, name: "USA" },
+      { id: 16, name: "Mexico" },
+      { id: 17, name: "China" },
+      { id: 18, name: "Arabia" },
+      { id: 19, name: "Persia" },
+      { id: 20, name: "ZSRR" }
     ];
+
     const objectDefinitions = [
       { id: 1, name: "City" },
       { id: 2, name: "Industry" },
@@ -1174,6 +1197,211 @@
         tile.classList.add('selected');
       }
     });
+
+    // Maksymalna liczba drużyn i krajów
+const maxTeams = 5;
+const maxCountriesPerTeam = 5;
+
+// Domyślnie tworzymy dwie drużyny
+let teams = [{ countries: [] }, { countries: [] }];
+
+const teamsContainer = document.getElementById('teamsContainer');
+const objectsListContainer = document.getElementById('objectsList'); // kontener listy obiektów (kraje)
+const selectedNationContainer = document.getElementById('selectedNationContainer'); // kontener szczegółów wybranego kraju
+
+// ------------------------------------------------------------------
+// Funkcja renderująca listę obiektów (kraje)
+// Każdy element (div) jest klikalny – po kliknięciu wywołuje selectNation(nation.id)
+// ------------------------------------------------------------------
+function renderObjectsList() {
+  objectsListContainer.innerHTML = '';
+  nationDefinitions.forEach(nation => {
+    const objDiv = document.createElement('div');
+    objDiv.classList.add('object-item');
+    objDiv.textContent = nation.name;
+    objDiv.addEventListener('click', () => {
+      selectNation(nation.id);
+    });
+    objectsListContainer.appendChild(objDiv);
+  });
+}
+
+// ------------------------------------------------------------------
+// Funkcja ustawiająca wybrany kraj (selectNation) oraz renderująca szczegóły
+// ------------------------------------------------------------------
+function selectNation(nationId) {
+  selectedNationId = nationId;
+  renderSelectedNation();
+}
+
+// Renderowanie szczegółów wybranego kraju (np. flaga, nazwa)
+function renderSelectedNation() {
+  selectedNationContainer.innerHTML = '';
+  if (selectedNationId != null) {
+    const nation = nationDefinitions.find(n => n.id === selectedNationId);
+    if (nation) {
+      const detailDiv = document.createElement('div');
+      detailDiv.classList.add('nation-detail');
+
+      // Flaga
+      const flagImg = document.createElement('img');
+      flagImg.src = './assets/flags/' + nation.name + '.svg';
+      flagImg.alt = `${nation.name} flag`;
+      detailDiv.appendChild(flagImg);
+
+      // Nazwa
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = nation.name;
+      detailDiv.appendChild(nameSpan);
+
+      selectedNationContainer.appendChild(detailDiv);
+    }
+  } else {
+    selectedNationContainer.textContent = "Wybierz kraj, aby zobaczyć szczegóły.";
+  }
+}
+
+// ------------------------------------------------------------------
+// Funkcja renderująca drużyny oraz umożliwiająca zaawansowane drag & drop
+// ------------------------------------------------------------------
+function renderTeams() {
+  teamsContainer.innerHTML = '';
+  
+  teams.forEach((team, teamIndex) => {
+    const teamDiv = document.createElement('div');
+    teamDiv.classList.add('team');
+    teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
+    
+    // Lista krajów w drużynie
+    const list = document.createElement('ul');
+    list.classList.add('team-list');
+    list.dataset.teamIndex = teamIndex;
+    
+    // Drop na pustym obszarze listy – dodajemy kraj na końcu
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    list.addEventListener('drop', (e) => {
+      e.preventDefault();
+      let data;
+      try {
+        data = JSON.parse(e.dataTransfer.getData('application/json'));
+      } catch(err) {
+        return;
+      }
+      // Dodajemy na końcu (jeśli nie upuszczono na konkretny element)
+      moveNation(data.originTeamIndex, data.originCountryIndex, teamIndex, team.countries.length);
+      renderTeams();
+    });
+    
+    // Renderowanie krajów w drużynie
+    team.countries.forEach((nation, countryIndex) => {
+      const li = document.createElement('li');
+      li.textContent = nation.name;
+      li.draggable = true;
+      li.dataset.nationId = nation.id;
+      
+      // Podczas przeciągania ustawiamy dodatkowe dane:
+      li.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({
+          nationId: nation.id,
+          originTeamIndex: teamIndex,
+          originCountryIndex: countryIndex
+        }));
+      });
+      
+      // Umożliwiamy drop na poszczególnym elemencie listy (dla zmiany kolejności)
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        let data;
+        try {
+          data = JSON.parse(e.dataTransfer.getData('application/json'));
+        } catch(err) {
+          return;
+        }
+        // Ustalamy docelowy indeks – pozycję bieżącego elementu li
+        const siblings = Array.from(li.parentElement.children);
+        const targetIndex = siblings.indexOf(li);
+        moveNation(data.originTeamIndex, data.originCountryIndex, teamIndex, targetIndex);
+        renderTeams();
+      });
+      
+      // Przycisk usuwania kraju z drużyny
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '❌';
+      removeBtn.addEventListener('click', () => {
+        team.countries.splice(countryIndex, 1);
+        renderTeams();
+      });
+      li.appendChild(removeBtn);
+      
+      list.appendChild(li);
+    });
+    
+    teamDiv.appendChild(list);
+    
+    // Panel dodawania kraju do drużyny – metoda: dodaj wybrany kraj (globalnie wybrany)
+    const addSelectedNationBtn = document.createElement('button');
+    addSelectedNationBtn.textContent = 'Dodaj wybrany kraj (z obiektu)';
+    addSelectedNationBtn.addEventListener('click', () => {
+      if (selectedNationId) {
+        const nationToAdd = nationDefinitions.find(n => n.id === selectedNationId);
+        if (nationToAdd && !team.countries.some(n => n.id === nationToAdd.id) && team.countries.length < maxCountriesPerTeam) {
+          team.countries.push(nationToAdd);
+          renderTeams();
+        }
+      } else {
+        alert("Wybierz kraj!");
+      }
+    });
+    teamDiv.appendChild(addSelectedNationBtn);
+    
+    teamsContainer.appendChild(teamDiv);
+  });
+  
+  // Przycisk dodawania nowej drużyny (jeśli limit nie został osiągnięty)
+  if (teams.length < maxTeams) {
+    const addTeamDiv = document.createElement('div');
+    addTeamDiv.classList.add('add-team-container');
+    const addTeamButton = document.createElement('button');
+    addTeamButton.textContent = 'Dodaj Drużynę';
+    addTeamButton.addEventListener('click', () => {
+      teams.push({ countries: [] });
+      renderTeams();
+    });
+    addTeamDiv.appendChild(addTeamButton);
+    teamsContainer.appendChild(addTeamDiv);
+  }
+}
+
+// ------------------------------------------------------------------
+// Funkcja pomocnicza przenosząca kraj między drużynami lub w obrębie tej samej drużyny
+// ------------------------------------------------------------------
+function moveNation(originTeamIndex, originCountryIndex, targetTeamIndex, targetCountryIndex) {
+  const nation = teams[originTeamIndex].countries.splice(originCountryIndex, 1)[0];
+  // Jeśli przenosimy w obrębie tej samej drużyny, a element był wcześniej przed celem dropu,
+  // to targetIndex trzeba zmniejszyć o 1
+  if (originTeamIndex === targetTeamIndex && originCountryIndex < targetCountryIndex) {
+    targetCountryIndex--;
+  }
+  teams[targetTeamIndex].countries.splice(targetCountryIndex, 0, nation);
+}
+
+// ------------------------------------------------------------------
+// Inicjalne renderowanie:
+// - renderObjectsList() – lista obiektów (kraje), po kliknięciu wywołuje selectNation()
+// - renderSelectedNation() – szczegóły wybranego kraju
+// - renderTeams() – lista drużyn z obsługą drag & drop (przenoszenie i sortowanie)
+// ------------------------------------------------------------------
+renderObjectsList();
+renderSelectedNation();
+renderTeams();
+
+
+    /*
     nationDefinitions.forEach((nation, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -1200,6 +1428,7 @@
         selectedNationId = nation.id;
       }
     });
+    */
 
     exportButton.addEventListener('click', () => {
       const titleVal = mapTitleInput.value;
