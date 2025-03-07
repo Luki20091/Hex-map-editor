@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Disable zooming on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 1.9</title>
+  <title>Hex Map Editor - BETA 2.0</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" type="text/css" href="assets/styles/desktop.css">
 </head>
@@ -39,7 +39,6 @@
     <button id="tool-eraser" class="tool-button" data-tool="eraser" title="Eraser (Remove)">
       <i class="fas fa-eraser"></i>
     </button>
-    <div id="objectsList"></div>
   </div>
 
   <!-- Top Left Panel: Map Settings, Export Form & Generator -->
@@ -88,10 +87,8 @@
       <i class="fas fa-exchange-alt"></i> Mode: Colors
     </button>
     <div id="terrainList"></div>
-    <div id="nationList" style="display:none;">
-      <button id="addTeam">Dodaj drużynę</button>
-      <div id="teamsContainer"></div>
-    </div>
+    <!--<div id="nationList" style="display:none;"></div>-->
+    <div id="teamList" style="display:none;"></div>
   </div>
 
   <!-- Bottom Left Panel: Big Pencil Slider -->
@@ -127,7 +124,7 @@
     </button>
   </div>
 
-  <script defer>
+  <script>
     // Prevent accidental refresh/quit
     window.addEventListener("beforeunload", function(e) {
       e.preventDefault();
@@ -183,7 +180,6 @@
       { id: 13, name: "Snowy Forest", color: "#87ddEB" },
       { id: 14, name: "Glacier", color: "#4682B4" }
     ];
-
     const nationDefinitions = [ 
       { id: 1, name: "Unnational" },
       { id: 2, name: "UN" },
@@ -206,7 +202,6 @@
       { id: 19, name: "Persia" },
       { id: 20, name: "ZSRR" }
     ];
-
     const objectDefinitions = [
       { id: 1, name: "City" },
       { id: 2, name: "Industry" },
@@ -605,7 +600,7 @@
     }
     function isBlockedForObjects(cell) {
       const terrain = cellDefinitions[cell.id];
-      return ['Mountains','Water','Ocean'].includes(terrain.name);
+      return ['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(terrain.name);
     }
 
     /* ---------------------------------------------------------------------------
@@ -658,7 +653,7 @@
             const current = queue.pop();
             if (current.id === targetId) {
               current.id = selectedTerrainId;
-              if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
+              if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
                 current.objectId = 0;
                 current.nationId = 0;
               }
@@ -675,7 +670,7 @@
           drawMap();
         } else if (selectedTool === 'pencil') {
           if (cell.id === selectedTerrainId) return;
-          if (['Mountains','Water','Ocean'].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
+          if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
             cell.objectId = 0;
             cell.nationId = 0;
           }
@@ -687,7 +682,7 @@
           if (cell.id === selectedTerrainId) return;
           const cellsToPaint = getCellsInRange(cell, bigBrushSize);
           const centerCube = evenr_to_cube(cell);
-          cellsToPaint.forEach(c => {
+          cellsToPaint.forEach(c => { //big brush is blocked for objects
             const cellCube = evenr_to_cube(c);
             const distance = cubeDistance(centerCube, cellCube);
             let p = 1 - (distance / bigBrushSize) * (bigBrushRoughness / 9);
@@ -695,6 +690,10 @@
             if (Math.random() < p) {
               if (c.id !== selectedTerrainId) {
                 c.id = selectedTerrainId;
+                if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && c.objectId) {
+                  c.objectId = 0;
+                  c.nationId = 0;
+                }
                 markDirtyForCell(c);
               }
             }
@@ -724,7 +723,8 @@
       const toolButtons = document.querySelectorAll('.tool-button');
       if (drawMode === 'color') {
         document.getElementById('terrainList').style.display = 'block';
-        document.getElementById('nationList').style.display = 'none';
+        //document.getElementById('nationList').style.display = 'none';
+        document.getElementById('teamList').style.display = 'none';
         document.getElementById('leftSidebarObjects').style.display = 'none';
         document.getElementById('leftSidebarCells').style.display = 'flex';
         setTool('pencil');
@@ -733,7 +733,8 @@
         if (pencilBtn) pencilBtn.classList.add('selected');
       } else {
         document.getElementById('terrainList').style.display = 'none';
-        document.getElementById('nationList').style.display = 'block';
+        //document.getElementById('nationList').style.display = 'block';
+        document.getElementById('teamList').style.display = 'block';
         document.getElementById('leftSidebarObjects').style.display = 'flex';
         document.getElementById('leftSidebarCells').style.display = 'none';
         setTool('pencil');
@@ -789,21 +790,6 @@
             });
           }
           ctx.restore();
-          // Podświetlenie – jeśli komórka należy do aktualnie wybranej drużyny
-          if (cell.teamId === activeTeamId) {
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = "blue";
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-              const angle = Math.PI / 3 * i + Math.PI / 6;
-              const xOffset = screenX + Math.cos(angle) * hexRadius;
-              const yOffset = screenY + Math.sin(angle) * hexRadius;
-              if (i === 0) ctx.moveTo(xOffset, yOffset);
-              else ctx.lineTo(xOffset, yOffset);
-            }
-            ctx.closePath();
-            ctx.stroke();
-          }
         }
       }
     }
@@ -1175,7 +1161,7 @@
     document.getElementById('redoButton').addEventListener('click', redo);
 
     const terrainList = document.getElementById('terrainList');
-    const nationList = document.getElementById('nationList');
+    //const nationList = document.getElementById('nationList');
     cellDefinitions.forEach((terrain, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
@@ -1197,212 +1183,7 @@
         tile.classList.add('selected');
       }
     });
-
-    // Maksymalna liczba drużyn i krajów
-const maxTeams = 5;
-const maxCountriesPerTeam = 5;
-
-// Domyślnie tworzymy dwie drużyny
-let teams = [{ countries: [] }, { countries: [] }];
-
-const teamsContainer = document.getElementById('teamsContainer');
-const objectsListContainer = document.getElementById('objectsList'); // kontener listy obiektów (kraje)
-const selectedNationContainer = document.getElementById('selectedNationContainer'); // kontener szczegółów wybranego kraju
-
-// ------------------------------------------------------------------
-// Funkcja renderująca listę obiektów (kraje)
-// Każdy element (div) jest klikalny – po kliknięciu wywołuje selectNation(nation.id)
-// ------------------------------------------------------------------
-function renderObjectsList() {
-  objectsListContainer.innerHTML = '';
-  nationDefinitions.forEach(nation => {
-    const objDiv = document.createElement('div');
-    objDiv.classList.add('object-item');
-    objDiv.textContent = nation.name;
-    objDiv.addEventListener('click', () => {
-      selectNation(nation.id);
-    });
-    objectsListContainer.appendChild(objDiv);
-  });
-}
-
-// ------------------------------------------------------------------
-// Funkcja ustawiająca wybrany kraj (selectNation) oraz renderująca szczegóły
-// ------------------------------------------------------------------
-function selectNation(nationId) {
-  selectedNationId = nationId;
-  renderSelectedNation();
-}
-
-// Renderowanie szczegółów wybranego kraju (np. flaga, nazwa)
-function renderSelectedNation() {
-  selectedNationContainer.innerHTML = '';
-  if (selectedNationId != null) {
-    const nation = nationDefinitions.find(n => n.id === selectedNationId);
-    if (nation) {
-      const detailDiv = document.createElement('div');
-      detailDiv.classList.add('nation-detail');
-
-      // Flaga
-      const flagImg = document.createElement('img');
-      flagImg.src = './assets/flags/' + nation.name + '.svg';
-      flagImg.alt = `${nation.name} flag`;
-      detailDiv.appendChild(flagImg);
-
-      // Nazwa
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = nation.name;
-      detailDiv.appendChild(nameSpan);
-
-      selectedNationContainer.appendChild(detailDiv);
-    }
-  } else {
-    selectedNationContainer.textContent = "Wybierz kraj, aby zobaczyć szczegóły.";
-  }
-}
-
-// ------------------------------------------------------------------
-// Funkcja renderująca drużyny oraz umożliwiająca zaawansowane drag & drop
-// ------------------------------------------------------------------
-function renderTeams() {
-  teamsContainer.innerHTML = '';
-  
-  teams.forEach((team, teamIndex) => {
-    const teamDiv = document.createElement('div');
-    teamDiv.classList.add('team');
-    teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
-    
-    // Lista krajów w drużynie
-    const list = document.createElement('ul');
-    list.classList.add('team-list');
-    list.dataset.teamIndex = teamIndex;
-    
-    // Drop na pustym obszarze listy – dodajemy kraj na końcu
-    list.addEventListener('dragover', (e) => {
-      e.preventDefault();
-    });
-    list.addEventListener('drop', (e) => {
-      e.preventDefault();
-      let data;
-      try {
-        data = JSON.parse(e.dataTransfer.getData('application/json'));
-      } catch(err) {
-        return;
-      }
-      // Dodajemy na końcu (jeśli nie upuszczono na konkretny element)
-      moveNation(data.originTeamIndex, data.originCountryIndex, teamIndex, team.countries.length);
-      renderTeams();
-    });
-    
-    // Renderowanie krajów w drużynie
-    team.countries.forEach((nation, countryIndex) => {
-      const li = document.createElement('li');
-      li.textContent = nation.name;
-      li.draggable = true;
-      li.dataset.nationId = nation.id;
-      
-      // Podczas przeciągania ustawiamy dodatkowe dane:
-      li.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('application/json', JSON.stringify({
-          nationId: nation.id,
-          originTeamIndex: teamIndex,
-          originCountryIndex: countryIndex
-        }));
-      });
-      
-      // Umożliwiamy drop na poszczególnym elemencie listy (dla zmiany kolejności)
-      li.addEventListener('dragover', (e) => {
-        e.preventDefault();
-      });
-      li.addEventListener('drop', (e) => {
-        e.preventDefault();
-        let data;
-        try {
-          data = JSON.parse(e.dataTransfer.getData('application/json'));
-        } catch(err) {
-          return;
-        }
-        // Ustalamy docelowy indeks – pozycję bieżącego elementu li
-        const siblings = Array.from(li.parentElement.children);
-        const targetIndex = siblings.indexOf(li);
-        moveNation(data.originTeamIndex, data.originCountryIndex, teamIndex, targetIndex);
-        renderTeams();
-      });
-      
-      // Przycisk usuwania kraju z drużyny
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '❌';
-      removeBtn.addEventListener('click', () => {
-        team.countries.splice(countryIndex, 1);
-        renderTeams();
-      });
-      li.appendChild(removeBtn);
-      
-      list.appendChild(li);
-    });
-    
-    teamDiv.appendChild(list);
-    
-    // Panel dodawania kraju do drużyny – metoda: dodaj wybrany kraj (globalnie wybrany)
-    const addSelectedNationBtn = document.createElement('button');
-    addSelectedNationBtn.textContent = 'Dodaj wybrany kraj (z obiektu)';
-    addSelectedNationBtn.addEventListener('click', () => {
-      if (selectedNationId) {
-        const nationToAdd = nationDefinitions.find(n => n.id === selectedNationId);
-        if (nationToAdd && !team.countries.some(n => n.id === nationToAdd.id) && team.countries.length < maxCountriesPerTeam) {
-          team.countries.push(nationToAdd);
-          renderTeams();
-        }
-      } else {
-        alert("Wybierz kraj!");
-      }
-    });
-    teamDiv.appendChild(addSelectedNationBtn);
-    
-    teamsContainer.appendChild(teamDiv);
-  });
-  
-  // Przycisk dodawania nowej drużyny (jeśli limit nie został osiągnięty)
-  if (teams.length < maxTeams) {
-    const addTeamDiv = document.createElement('div');
-    addTeamDiv.classList.add('add-team-container');
-    const addTeamButton = document.createElement('button');
-    addTeamButton.textContent = 'Dodaj Drużynę';
-    addTeamButton.addEventListener('click', () => {
-      teams.push({ countries: [] });
-      renderTeams();
-    });
-    addTeamDiv.appendChild(addTeamButton);
-    teamsContainer.appendChild(addTeamDiv);
-  }
-}
-
-// ------------------------------------------------------------------
-// Funkcja pomocnicza przenosząca kraj między drużynami lub w obrębie tej samej drużyny
-// ------------------------------------------------------------------
-function moveNation(originTeamIndex, originCountryIndex, targetTeamIndex, targetCountryIndex) {
-  const nation = teams[originTeamIndex].countries.splice(originCountryIndex, 1)[0];
-  // Jeśli przenosimy w obrębie tej samej drużyny, a element był wcześniej przed celem dropu,
-  // to targetIndex trzeba zmniejszyć o 1
-  if (originTeamIndex === targetTeamIndex && originCountryIndex < targetCountryIndex) {
-    targetCountryIndex--;
-  }
-  teams[targetTeamIndex].countries.splice(targetCountryIndex, 0, nation);
-}
-
-// ------------------------------------------------------------------
-// Inicjalne renderowanie:
-// - renderObjectsList() – lista obiektów (kraje), po kliknięciu wywołuje selectNation()
-// - renderSelectedNation() – szczegóły wybranego kraju
-// - renderTeams() – lista drużyn z obsługą drag & drop (przenoszenie i sortowanie)
-// ------------------------------------------------------------------
-renderObjectsList();
-renderSelectedNation();
-renderTeams();
-
-
-    /*
-    nationDefinitions.forEach((nation, index) => {
+    /*nationDefinitions.forEach((nation, index) => {
       const tile = document.createElement('div');
       tile.classList.add('tile');
       tile.dataset.nationId = nation.id;
@@ -1429,6 +1210,266 @@ renderTeams();
       }
     });
     */
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Maksymalna liczba drużyn i krajów
+const maxTeams = 5;
+const maxCountriesPerTeam = 5;
+
+// Domyślnie tworzymy dwie drużyny
+let teams = [{ countries: [] }, { countries: [] }];
+
+const teamsContainer = document.getElementById('teamList');
+
+
+// ---------------------------------------------
+// Funkcja wyświetlająca listę krajów (kafelki)
+// ---------------------------------------------
+
+// ---------------------------------------------
+// Funkcja wyświetlająca drużyny oraz panel dodawania krajów
+// ---------------------------------------------
+function renderTeams() {
+  teamsContainer.innerHTML = '';
+  
+  teams.forEach((team, teamIndex) => {
+    const teamDiv = document.createElement('div');
+    teamDiv.classList.add('team');
+    teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
+    
+    // Lista krajów w drużynie
+    const list = document.createElement('ul');
+    list.classList.add('team-list');
+    list.dataset.teamIndex = teamIndex;
+    
+    // Wyświetlamy kraje w drużynie
+    team.countries.forEach((nation, countryIndex) => {
+      const li = document.createElement('li');
+      li.dataset.nationId = nation.id;
+
+      const flagContainer = document.createElement('div');
+      flagContainer.classList.add('tile-flag');
+      const flagImage = document.createElement('img');
+      const flagPath = './assets/flags/' + nation.name + '.svg';
+      flagImage.src = flagPath;
+      flagImage.alt = `${nation.name} flag`;
+      flagContainer.appendChild(flagImage);
+      const label = document.createElement('span');
+      label.textContent = nation.name;
+
+
+      
+      const liObjects = document.createElement('li');
+      liObjects.classList.add('objects');
+      liObjects.style.display = "none";
+      objectDefinitions.forEach((object, index) => {
+        const iconContainer = document.createElement('div');
+        iconContainer.dataset.objectId = object.id;
+        iconContainer.classList.add('tile-flag');
+        const iconImage = document.createElement('img');
+        const iconPath = './assets/objects/' + nation.name.toLowerCase() + "/" + object.name.toLowerCase() + '.svg';
+        iconImage.src = iconPath;
+        iconImage.alt = `${object.name} icon`;
+        iconContainer.appendChild(iconImage);
+        const label = document.createElement('span');
+        label.textContent = object.name;
+        liObjects.appendChild(iconContainer);
+
+        iconContainer.addEventListener('click', () => {
+          selectedNationId = parseInt(li.dataset.nationId);
+          selectedObjectId = parseInt(iconContainer.dataset.objectId);
+          document.querySelectorAll('#nationList .tile').forEach(t => t.classList.remove('selected'));
+          iconContainer.classList.add('selected');
+        });
+      });
+      // Przycisk usunięcia kraju z drużyny
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '❌';
+      removeBtn.addEventListener('click', () => {
+        team.countries.splice(countryIndex, 1);
+        renderTeams();
+      });
+
+      const showBtn = document.createElement('button');
+      showBtn.textContent = '>';
+      showBtn.addEventListener('click', () => {
+        liObjects.style.display = (liObjects.style.display === 'none' || liObjects.style.display === '') ? 'flex' : 'none';
+      });
+      
+      li.appendChild(flagContainer);
+      li.appendChild(label);
+      li.appendChild(showBtn);
+      li.appendChild(removeBtn);
+      li.appendChild(liObjects);
+      list.appendChild(li);
+    });
+    
+    teamDiv.appendChild(list);
+    
+    // ---------------------------------------------
+    // Panel dodawania kraju z użyciem listy rozwijanej
+    // ---------------------------------------------
+    const addCountryContainer = document.createElement('div');
+    addCountryContainer.classList.add('add-country-container');
+    
+    const countrySelect = document.createElement('select');
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '-- Wybierz kraj --';
+    countrySelect.appendChild(defaultOption);
+    
+    nationDefinitions.forEach(nation => {
+      const option = document.createElement('option');
+      option.value = nation.id;
+      option.textContent = nation.name;
+      // Jeżeli kraj już jest w drużynie, opcja zostanie wyłączona
+      if (team.countries.some(n => n.id === nation.id)) {
+        option.disabled = true;
+      }
+      countrySelect.appendChild(option);
+    });
+    
+    const addCountryBtn = document.createElement('button');
+    addCountryBtn.textContent = 'Dodaj kraj';
+    addCountryBtn.addEventListener('click', () => {
+      const selectedValue = countrySelect.value;
+      if (selectedValue && team.countries.length < maxCountriesPerTeam) {
+        const nationToAdd = nationDefinitions.find(n => n.id == selectedValue);
+        if (nationToAdd && !team.countries.some(n => n.id === nationToAdd.id)) {
+          team.countries.push(nationToAdd);
+          renderTeams();
+        }
+      }
+    });
+    
+    addCountryContainer.appendChild(countrySelect);
+    addCountryContainer.appendChild(addCountryBtn);
+    teamDiv.appendChild(addCountryContainer);
+    
+    teamsContainer.appendChild(teamDiv);
+  });
+  
+  // ---------------------------------------------
+  // Przycisk dodawania nowej drużyny (na końcu listy drużyn)
+  // ---------------------------------------------
+  if (teams.length < maxTeams) {
+    const addTeamDiv = document.createElement('div');
+    addTeamDiv.classList.add('add-team-container');
+    const addTeamButton = document.createElement('button');
+    addTeamButton.textContent = 'Dodaj Drużynę';
+    addTeamButton.addEventListener('click', () => {
+      teams.push({ countries: [] });
+      renderTeams();
+    });
+    addTeamDiv.appendChild(addTeamButton);
+    teamsContainer.appendChild(addTeamDiv);
+  }
+}
+
+// Inicjalizacja: najpierw wyświetlamy listę krajów, potem drużyny
+renderTeams();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     exportButton.addEventListener('click', () => {
       const titleVal = mapTitleInput.value;
