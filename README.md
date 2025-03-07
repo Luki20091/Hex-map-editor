@@ -9,8 +9,8 @@
 - [ ] Prevented unintended cursor movement when switching browser tabs  
 
 ### Beta 2.0  
-- [ ] Team trees UI - infinity teams
-- [ ] isBlockedForObjects includes added terrains
+- [x] Team trees UI - max 5 teams, max 5 nations per team
+- [x] isBlockedForObjects includes added terrains
 - [x] UI tools hover styling
 - [x] Adjusted global scaling (0.7×) for better readability  
 
