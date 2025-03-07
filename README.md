@@ -10,7 +10,6 @@
 
 ### Beta 2.1  
 - [ ] Every single object icon
-- [ ] 
 
 ### Beta 2.0  
 - [x] Team trees UI - max 5 teams, max 5 nations per team
