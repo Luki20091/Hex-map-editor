@@ -3,10 +3,14 @@
 
 ## Changelog  
 
-### Beta 2.1  
+### Beta 2.2  
 - [ ] Improved overall UI styling (final adjustments pending)  
 - [ ] Added favicon support  
 - [ ] Prevented unintended cursor movement when switching browser tabs  
+
+### Beta 2.1  
+- [ ] Every single object icon
+- [ ] 
 
 ### Beta 2.0  
 - [x] Team trees UI - max 5 teams, max 5 nations per team
