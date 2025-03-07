@@ -204,7 +204,7 @@ canvas {
     background-color: var(--accent-color);
 }
 /* Adjust SVG size in objects menu */
-#rightSidebar .tile .tile-flag img {
+.tile-flag img {
     width: 24px;
     height: 24px;
     object-fit: contain;
@@ -291,3 +291,10 @@ canvas {
 input, button {
     font-family: inherit;
 }
+
+
+
+
+.team { margin: 10px; padding: 10px;}
+.team-list { list-style: none; padding: 0; }
+.team-list li { padding: 5px; border: 1px solid #ccc; margin: 2px; display: flex; justify-content: space-between; }
