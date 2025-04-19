@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="300mm"
+   height="300mm"
+   viewBox="0 0 300 300"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="infantry.svg"
+   xml:space="preserve"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview
+     id="namedview1"
+     pagecolor="#696969"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.3535534"
+     inkscape:cx="674.57985"
+     inkscape:cy="468.10468"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" /><defs
+     id="defs1" /><g
+     inkscape:label="Warstwa 1"
+     inkscape:groupmode="layer"
+     id="layer1"><path
+       id="path4"
+       style="color:#000000;fill:#000000;stroke-width:0.963499;stroke-linecap:square;-inkscape-stroke:none;paint-order:markers stroke fill"
+       d="m 238.93996,59.830884 -50.24661,11.081136 -69.61701,78.73859 30.62165,30.72006 79.77572,-70.58757 z M 90.7615,134.50832 l -11.497337,21.97583 20.833647,30.52327 -6.17048,7.13592 -12.017324,6.17994 -12.568995,-3.36632 -8.280974,16.10421 26.087269,27.10794 16.104704,-9.30165 -3.366806,-12.56899 6.179936,-12.01731 7.1359,-6.17049 30.18305,20.83364 21.97583,-10.81638 z"
+       sodipodi:nodetypes="ccccccccccccccccccccc" /></g></svg>
