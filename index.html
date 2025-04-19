@@ -76,6 +76,9 @@
         <button id="exportButton" title="Export to JSON"><i class="fas fa-file-export"></i> Export</button>
       </div>
       <div class="setting-item">
+        <button id="exportImg" title="Export map as img with coordinates"><i class="fas fa-file-image"></i> Img Export</button>
+      </div>
+      <div class="setting-item">
         <button id="aiGenerateButton" title="Generate Map with AI"><i class="fas fa-robot"></i> AI Generate</button>
       </div>
     </div>
@@ -1707,101 +1710,47 @@ renderTeams();
 
 
     // ---------------------------
-    // IMPORT I PRZETWARZANIE OBRAZU SATELITARNEGO
+    // EXPORT OBRAZU CANVAS Z KOORDYNATAMI HEXÓW
     // ---------------------------
 
-    /**
-     * Klasyfikacja terenu na podstawie koloru z realnego zdjęcia satelitarnego.
-     * Analizujemy m.in. jasność oraz "ciepło" koloru (różnicę r - b).
-     * Pomijamy obszary zimne (np. dominujące niebieskie) i przypisujemy:
-     * - 1: Woda
-     * - 7: Las/obszary rolnicze (zielony)
-     * - 4: Pustynia/skalist (cieplejsze odcienie)
-     * - 11: Obszary urbanistyczne (bardzo jasne i mało nasycone)
-     * W razie wątpliwości losujemy między możliwymi typami.
-     *
-     * @param {number} r - wartość czerwieni (0-255)
-     * @param {number} g - wartość zieleni (0-255)
-     * @param {number} b - wartość niebieskiego (0-255)
-     * @param {object} prng - generator liczb pseudolosowych (wynik createSeedablePRNG)
-     * @returns {number} identyfikator terenu
-     */
-    function classifyRealSatelliteTerrain(r, g, b, prng) {
-      const brightness = (r + g + b) / 3;
-      const warmth = r - b; // im wyższy, tym teren wydaje się cieplejszy
-
-      // Jeśli teren wygląda zimno lub dominują zimne odcienie, traktujemy go jako wodny
-      if (warmth < 10 || (b > r + 20 && b > g + 20)) {
-        return 1; // Woda
-      }
+    function exportCanvasWithHexCoords() {
+      // create a temporary canvas to draw the current map + labels
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
       
-      // Obliczamy przybliżone nasycenie
-      const minRGB = Math.min(r, g, b);
-      const maxRGB = Math.max(r, g, b);
-      const saturation = maxRGB === 0 ? 0 : ((maxRGB - minRGB) / maxRGB) * 100;
+      // draw the existing map onto it
+      tempCtx.drawImage(canvas, 0, 0);
       
-      // Obszary bardzo jasne i mało nasycone uznajemy za urbanistyczne
-      if (brightness > 200 && saturation < 20) {
-        return 11; // Urban / zabudowania
-      }
+      // configure text style (adjust font size if needed)
+      const fontSize = Math.max(11, Math.floor(hexRadius / 3));
+      tempCtx.font = `${fontSize}px Arial`;
+      tempCtx.fillStyle = '#000000';
+      tempCtx.textAlign = 'center';
+      tempCtx.textBaseline = 'middle';
+      tempCtx.lineWidth = 0;
       
-      // Jeśli zielony dominuje, traktujemy teren jako las/obszary rolnicze
-      if (g > r && g > b) {
-        return 7; // Las / tereny rolnicze
-      }
-      
-      // Jeśli dominuje czerwień – teren pustynny lub skalisty
-      if (r > g && r > b) {
-        if (brightness > 180) {
-          return 11; // Możliwe odbicie w zabudowaniach
-        } else {
-          return 4; // Pustynia / teren skalisty
-        }
-      }
-      
-      // W przeciwnym przypadku losujemy między możliwymi typami (np. las lub obszar rolniczy)
-      return prng.next() < 0.5 ? 7 : 8;
-    }
-
-    /**
-     * Funkcja odczytująca dane z obrazu satelitarnego.
-     * Skaluje obraz tak, aby pokrył całą mapę (bazując na globalnych zmiennych cols i rows)
-     * i dla każdej komórki (w hexMap) przypisuje typ terenu na podstawie koloru.
-     *
-     * @param {HTMLImageElement} image - załadowany obraz satelitarne
-     */
-    function readMapFromSatelliteImage(image) {
-      // Utworzenie tymczasowego canvasu do odczytu danych piksela
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(image, 0, 0);
-
-      const imageData = ctx.getImageData(0, 0, image.width, image.height).data;
-      const seed = Date.now() % 100000;
-      const prng = createSeedablePRNG(seed);
-
-      // Dla każdej komórki w hexMap przeliczamy odpowiadający piksel w obrazie
+      // overlay each hex's (col,row) at its center
       hexMap.forEach(cell => {
-        // Skalujemy współrzędne komórki do rozmiarów obrazu
-        let pixelX = Math.floor((cell.col / (cols - 1)) * (image.width - 1));
-        let pixelY = Math.floor((cell.row / (rows - 1)) * (image.height - 1));
-
-        const index = (pixelY * image.width + pixelX) * 4;
-        const r = imageData[index];
-        const g = imageData[index + 1];
-        const b = imageData[index + 2];
-
-        cell.id = classifyRealSatelliteTerrain(r, g, b, prng);
-        cell.objectId = 0;
-        cell.nationId = 0;
+        const pos = evenr_to_pixel(cell);
+        const x = pos.x + canvas.width / 2 + offsetX;
+        const y = pos.y + canvas.height / 2 + offsetY;
+        const label = `${cell.col},${cell.row}`;
+        // optional: stroke for readability
+        tempCtx.fillText(label, x, y);
       });
-
-      mapDirty = true;
-      saveHistory();
-      drawMap();
+      
+      // trigger download
+      const dataURL = tempCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = `${mapTitleInput.value || 'map'}_with_coords.png`;
+      a.click();
     }
+
+
+
 
 
     // ---------------------------
@@ -1810,6 +1759,7 @@ renderTeams();
 
     // Przycisk generujący proceduralnie mapę na podstawie Perlin Noise
     document.getElementById('aiGenerateButton').addEventListener('click', proceduralPerlinHexMap);
+    document.getElementById('exportImg').addEventListener('click', exportCanvasWithHexCoords);
 
 
     /* ===================================================================== */
