@@ -1,5 +1,5 @@
 # History of Balls - Hex Map Editor  
-[Edit your maps here](https://luki20091.github.io/Hex-map-editor/)  
+[Build/Edit your maps here](https://luki20091.github.io/Hex-map-editor/)  
 
 ## Official maps
 [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
