@@ -1676,6 +1676,7 @@ function initNationSelector() {
         cellDefinitions,
         nationDefinitions,
         objectDefinitions,
+        teams,
         cells: hexMap
       };
       const dataStr = JSON.stringify(data, null, 2);
@@ -1698,6 +1699,7 @@ function initNationSelector() {
           const json = JSON.parse(e.target.result);
           cols = json.cols || cols;
           rows = json.rows || rows;
+          teams = json.teams || teams;
           mapTitleInput.value = json.title || "";
           mapDescriptionInput.value = json.description || "";
           hexMap.length = 0;
@@ -1713,6 +1715,12 @@ function initNationSelector() {
           mapDirty = true;
           drawMap();
           saveHistory();
+          
+
+          //to działa ale xDD
+          zoomInButton.click();
+          zoomOutButton.click();
+          // ^^^^^^^^^^^^^^^^
         };
         reader.readAsText(file);
       }
