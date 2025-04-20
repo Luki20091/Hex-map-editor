@@ -15,6 +15,7 @@
 - [x] Every single object icons as mask
 - [x] Object icons bar
 - [x] img export (why not)
+- [x] Zombie nation
 
 ### Beta 2.0  
 - [x] Team trees UI - max 5 teams, max 5 nations per team
