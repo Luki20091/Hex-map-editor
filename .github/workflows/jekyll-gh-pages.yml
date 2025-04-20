@@ -35,10 +35,17 @@ jobs:
         with:
           source: ./
           destination: ./_site
-      - name: Convert all filenames to lowercase (safely)
+      - name: Convert all filenames to lowercase (safely, skip LICENSE)
         run: |
           find . -depth -not -path "./.git*" | while read fname; do
-            newname=$(dirname "$fname")/$(basename "$fname" | tr '[:upper:]' '[:lower:]')
+            # Wyciągnij tylko nazwę pliku
+            base=$(basename "$fname")
+            # Pomijaj LICENSE i license
+            if [[ "$base" == "LICENSE" || "$base" == "license" ]]; then
+              echo "Skipping $fname (LICENSE file)"
+              continue
+            fi
+            newname=$(dirname "$fname")/$(echo "$base" | tr '[:upper:]' '[:lower:]')
             if [ "$fname" != "$newname" ]; then
               if [ ! -e "$newname" ]; then
                 mv "$fname" "$newname"
