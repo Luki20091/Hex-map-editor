@@ -496,7 +496,7 @@
         const screenY = pos.y + canvas.height / 2 + offsetY;
 
         const objPath = `assets/objects/${obj.name.toLowerCase()}.svg`;
-        const natPath = `assets/flags/${nat.name.toLowerCase()}.svg`;
+        const natPath = `assets/flags/${nat.name}.svg`;
         let contrast = 1;
 
         switch(obj.name.toLowerCase()) {
@@ -832,7 +832,7 @@
 
       // 2) Ścieżki do plików SVG
       const objPath = `assets/objects/${obj.name.toLowerCase()}.svg`;
-      const natPath = `assets/flags/${nat.name.toLowerCase()}.svg`;
+      const natPath = `assets/flags/${nat.name}.svg`;
 
       // 3) Pobrać obie bitmapy z cache albo asynchronicznie
       const objImg = getImage(objPath);
@@ -1467,7 +1467,7 @@ function renderTeams() {
       const flagContainer = document.createElement('div');
       flagContainer.classList.add('tile-flag');
       const flagImage = document.createElement('img');
-      const flagPath = `assets/flags/${nat.name.toLowerCase()}.svg`;
+      const flagPath = `assets/flags/${nat.name}.svg`;
       flagImage.src = flagPath;
       flagImage.alt = `${nation.name} flag`;
       flagContainer.appendChild(flagImage);
