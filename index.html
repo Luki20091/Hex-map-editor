@@ -774,6 +774,7 @@
         //document.getElementById('nationList').style.display = 'none';
         document.getElementById('teamList').style.display = 'none';
         document.getElementById('leftSidebarObjects').style.display = 'none';
+        document.getElementById('objectList').style.display = 'none';
         document.getElementById('leftSidebarCells').style.display = 'flex';
         setTool('pencil');
         toolButtons.forEach(btn => btn.classList.remove('selected'));
@@ -785,6 +786,9 @@
         document.getElementById('teamList').style.display = 'block';
         document.getElementById('leftSidebarObjects').style.display = 'flex';
         document.getElementById('leftSidebarCells').style.display = 'none';
+        document.getElementById('objectList').style.display = 'flex';
+        initNationSelector();
+        renderAll();
         setTool('pencil');
         toolButtons.forEach(btn => btn.classList.remove('selected'));
         const pencilBtn = document.querySelector("#leftSidebarObjects .tool-button[data-tool='pencil']");
@@ -1456,12 +1460,13 @@
           imgNat ? Promise.resolve(imgNat) : loadImage(`assets/flags/${nation.name}.svg`)
         ]);
       }
-      const comp = ensureComposite(imgObj, imgNat, `${obj.name}::${nation.name}`, 40);
+      const comp = ensureComposite(imgObj, imgNat, `${obj.name}::${nation.name}::300`, 300);
       const tile = document.createElement('div');
       tile.classList.add('tile-flag');
       const imgEl = document.createElement('img');
       imgEl.src = comp.toDataURL();
       imgEl.alt = `${obj.name} icon`;
+      imgEl.tile = `${obj.name}`;
       const span = document.createElement('span');
       span.textContent = obj.name;
       tile.appendChild(imgEl);
@@ -1470,7 +1475,6 @@
         tile.classList.add('objectSelected');
       }
       tile.addEventListener('click', () => {
-        selectedNationId = nation.id;
         selectedObjectId = obj.id;
         renderAll();
       });
@@ -1615,9 +1619,6 @@ function initNationSelector() {
     await renderAll();
   });
 }
-
-initNationSelector();
-renderAll();
 
 
 

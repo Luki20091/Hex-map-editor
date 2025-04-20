@@ -83,6 +83,8 @@ canvas {
     flex-direction: row;
     gap: 10px;
     border-radius: 4px;
+    align-content: center;
+    justify-content: space-between;
 }
 /* First row: Map settings arranged left-to-right */
 #topLeft .map-settings {
@@ -91,6 +93,8 @@ canvas {
     align-items: center;
     gap: 10px;
 }
+
+
 #topLeft .map-settings .setting-item {
     display: flex;
     flex-direction: column;
@@ -150,6 +154,7 @@ canvas {
     background-color: var(--accent-color);
     color: var(--text-color);
     cursor: pointer;
+    transition: all 100ms ease-out;
 }
 #topLeft .export-form .setting-item button:hover {
     background-color: var(--accent-hover);
@@ -179,6 +184,7 @@ canvas {
     width: 100%;
     cursor: pointer;
     margin-bottom: 10px;
+    transition: all 100ms ease-out;
 }
 #rightSidebar button:hover {
     background-color: var(--accent-hover);
@@ -190,9 +196,10 @@ canvas {
     margin: 5px 0;
     border-radius: 4px;
     cursor: pointer;
+    transition: all 100ms ease-out;
 }
 #rightSidebar .tile .tile-color {
-    width: 24px;
+    width: 22px;
     height: 24px;
     margin-right: 10px;
     clip-path: polygon(-50% 50%,50% 100%,150% 50%,50% 0);
@@ -295,6 +302,85 @@ input, button {
 
 
 
-.team { margin: 10px; padding: 10px;}
-.team-list { list-style: none; padding: 0; }
-.team-list li { padding: 5px; border: 1px solid #ccc; margin: 2px; display: flex; justify-content: space-between; }
+.team { 
+    margin: 10px; 
+    padding: 10px;
+}
+.team-list { 
+    list-style: none; 
+    padding: 0; 
+}
+.team-list li.tile-flag { 
+    padding: 5px;  
+    margin: 2px; 
+    display: flex; 
+    justify-content: space-between; 
+    cursor: pointer;
+    transition: all 100ms ease-out;
+    border-radius: 4px;
+}
+
+.team-list li.nationSelected { 
+    background-color: var(--accent-color)!important;
+}
+.team-list li.tile-flag:hover { 
+    background-color: var(--hover-bg);
+}
+
+
+
+
+
+
+
+
+
+#objectList {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+
+
+#objectList > div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 14px;
+    margin: 8px 0;
+    cursor: pointer;
+    padding: 8px 10px;
+    width: 100%;
+    height: auto;
+    transition: all 100ms ease-out;
+}
+#objectList > div.objectSelected {
+    color: var(--accent-color);
+    margin-top: 0px!important;
+    margin-bottom: 0px!important;
+}
+#objectList > div:hover {
+    margin-top: 8px;
+    margin-bottom: -8px;
+    opacity: 0.8;
+}
+
+
+#objectList > .tile-flag img {
+    width: 40px;
+    height: 40px;
+}
+
+
+
+
+
+
+
+
+
