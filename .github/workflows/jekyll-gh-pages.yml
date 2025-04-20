@@ -35,12 +35,16 @@ jobs:
         with:
           source: ./
           destination: ./_site
-      - name: Convert all filenames to lowercase
+      - name: Convert all filenames to lowercase (safely)
         run: |
-          find . -depth | while read fname; do
+          find . -depth -not -path "./.git*" | while read fname; do
             newname=$(dirname "$fname")/$(basename "$fname" | tr '[:upper:]' '[:lower:]')
             if [ "$fname" != "$newname" ]; then
-              mv "$fname" "$newname"
+              if [ ! -e "$newname" ]; then
+                mv "$fname" "$newname"
+              else
+                echo "Skipping $fname → $newname (target exists)"
+              fi
             fi
           done
       - name: Upload artifact
