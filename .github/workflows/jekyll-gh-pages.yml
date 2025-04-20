@@ -35,31 +35,6 @@ jobs:
         with:
           source: ./
           destination: ./_site
-      - name: Convert all filenames to lowercase (safely, skip LICENSE)
-        run: |
-          find . -depth -not -path "./.git*" | while read fname; do
-            base=$(basename "$fname")
-            dir=$(dirname "$fname")
-            lowerbase=$(echo "$base" | tr '[:upper:]' '[:lower:]')
-            
-            # Pomijaj LICENSE i license
-            if [[ "$lowerbase" == "license" ]]; then
-              echo "Skipping $fname (LICENSE file)"
-              continue
-            fi
-
-            newname="$dir/$lowerbase"
-
-            if [ "$fname" != "$newname" ]; then
-              if [ ! -e "$newname" ]; then
-                tempname="$dir/__temp__$$"
-                mv "$fname" "$tempname" && mv "$tempname" "$newname"
-                echo "Renamed $fname → $newname"
-              else
-                echo "Skipping $fname → $newname (target exists)"
-              fi
-            fi
-          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
