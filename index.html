@@ -969,9 +969,8 @@
 
     
     function loadImage(imagePath, callback) {
-      if (imageCache[imagePath]) {
-        callback(imageCache[imagePath]);
-        return;
+      if (typeof callback !== 'function') {
+        return new Promise(resolve => loadImage(imagePath, resolve));
       }
       fetch(imagePath)
         .then(response => response.text())
@@ -987,6 +986,12 @@
           image.src = url;
         })
         .catch(error => console.error('Error loading image:', error));
+    }
+
+    function loadImageAsync(imagePath) {
+      return new Promise(resolve => {
+        loadImage(imagePath, resolve);
+      });
     }
     function getImage(imagePath) {
       return imageCache[imagePath];
@@ -1430,100 +1435,126 @@
 
 
     // Maksymalna liczba drużyn i krajów
-const maxTeams = 5;
-const maxCountriesPerTeam = 5;
+    const maxTeams = 5;
+    const maxCountriesPerTeam = 5;
 
-// Domyślnie tworzymy dwie drużyny
-let teams = [{ countries: [] }, { countries: [] }];
+    // Domyślnie tworzymy dwie drużyny
+    let teams = [{ countries: [] }, { countries: [] }];
 
-const teamsContainer = document.getElementById('teamList');
-
-
-// ---------------------------------------------
-// Funkcja wyświetlająca listę krajów (kafelki)
-// ---------------------------------------------
-
-// ---------------------------------------------
-// Funkcja wyświetlająca drużyny oraz panel dodawania krajów
-// ---------------------------------------------
-function renderTeams() {
-  teamsContainer.innerHTML = '';
-  
-  teams.forEach((team, teamIndex) => {
-    const teamDiv = document.createElement('div');
-    teamDiv.classList.add('team');
-    teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
-    
-    // Lista krajów w drużynie
-    const list = document.createElement('ul');
-    list.classList.add('team-list');
-    list.dataset.teamIndex = teamIndex;
-    
-    // Wyświetlamy kraje w drużynie
-    team.countries.forEach((nation, countryIndex) => {
-      const li = document.createElement('li');
-      li.dataset.nationId = nation.id;
-
-      const flagContainer = document.createElement('div');
-      flagContainer.classList.add('tile-flag');
-      const flagImage = document.createElement('img');
-      const flagPath = `assets/flags/${nation.name}.svg`;
-      flagImage.src = flagPath;
-      flagImage.alt = `${nation.name} flag`;
-      flagContainer.appendChild(flagImage);
-      const label = document.createElement('span');
-      label.textContent = nation.name;
+    const teamsContainer = document.getElementById('teamList');
 
 
+    // ---------------------------------------------
+    // Funkcja wyświetlająca listę krajów (kafelki)
+    // ---------------------------------------------
+
+    // ---------------------------------------------
+    // Funkcja wyświetlająca drużyny oraz panel dodawania krajów
+    // ---------------------------------------------
+    // 1) oznacz renderTeams jako async
+    async function renderTeams() {
+      teamsContainer.innerHTML = '';
       
-      const liObjects = document.createElement('li');
-      liObjects.classList.add('objects');
-      liObjects.style.display = "none";
-      objectDefinitions.forEach((object, index) => {
-        const iconContainer = document.createElement('div');
-        iconContainer.dataset.objectId = object.id;
-        iconContainer.classList.add('tile-flag');
-        const iconImage = document.createElement('img');
+      teams.forEach((team, teamIndex) => {
+        const teamDiv = document.createElement('div');
+        teamDiv.classList.add('team');
+        teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
+        
+        // Lista krajów w drużynie
+        const list = document.createElement('ul');
+        list.classList.add('team-list');
+        list.dataset.teamIndex = teamIndex;
+        
+        // Wyświetlamy kraje w drużynie
+        team.countries.forEach((nation, countryIndex) => {
+          const li = document.createElement('li');
+          li.dataset.nationId = nation.id;
 
+          const flagContainer = document.createElement('div');
+          flagContainer.classList.add('tile-flag');
+          const flagImage = document.createElement('img');
+          const flagPath = `assets/flags/${nation.name}.svg`;
+          flagImage.src = flagPath;
+          flagImage.alt = `${nation.name} flag`;
+          flagContainer.appendChild(flagImage);
+          const label = document.createElement('span');
+          label.textContent = nation.name;
 
+          
+          const liObjects = document.createElement('li');
+          liObjects.classList.add('objects');
+          liObjects.style.display = "none";
 
+          // 2) oznacz callback jako async, żeby można było użyć await
+          objectDefinitions.forEach(async (object, index) => {
+            const iconContainer = document.createElement('div');
+            iconContainer.dataset.objectId = object.id;
+            iconContainer.classList.add('tile-flag');
+            const iconImage = document.createElement('img');
 
-        iconImage.alt = `${object.name} icon`;
-        iconContainer.appendChild(iconImage);
-        const label = document.createElement('span');
-        label.textContent = object.name;
-        liObjects.appendChild(iconContainer);
+            const objPath = `assets/objects/${object.name.toLowerCase()}.svg`;
+            const natPath = `assets/flags/${nation.name}.svg`;
+            
+            
+            // Jeśli nie ma w cache, załaduj je i po załadowaniu przerysuj
+            let objImg = getImage(objPath);
+            let natImg = getImage(natPath);
 
-        iconContainer.addEventListener('click', () => {
-          selectedNationId = parseInt(li.dataset.nationId);
-          selectedObjectId = parseInt(iconContainer.dataset.objectId);
-          document.querySelectorAll('#nationList .tile').forEach(t => t.classList.remove('selected'));
-          iconContainer.classList.add('selected');
+            // jeśli brakuje, poczekaj na załadowanie
+            if (!objImg || !natImg) {
+              [objImg, natImg] = await Promise.all([
+                objImg ? Promise.resolve(objImg) : loadImage(objPath),
+                natImg ? Promise.resolve(natImg) : loadImage(natPath),
+              ]);
+            }
+
+            // zrób composit i wrzuć do <img>
+            const size = 40; // rozmiar ikonek w px
+            const off = ensureComposite(
+              objImg, natImg,
+              `${object.name}::${nation.name}`,
+              size,
+              0.9           // tu kontrast
+            );
+            iconImage.src = off.toDataURL();
+            iconImage.alt = `${object.name} icon`;
+            iconContainer.appendChild(iconImage);
+            const label = document.createElement('span');
+            label.textContent = object.name;
+            liObjects.appendChild(iconContainer);
+
+            iconContainer.addEventListener('click', () => {
+              selectedNationId = parseInt(li.dataset.nationId);
+              selectedObjectId = parseInt(iconContainer.dataset.objectId);
+              document.querySelectorAll('#nationList .tile').forEach(t => t.classList.remove('selected'));
+              iconContainer.classList.add('selected');
+            });
+          });
+          // Przycisk usunięcia kraju z drużyny
+          const removeBtn = document.createElement('button');
+          removeBtn.textContent = '❌';
+          removeBtn.addEventListener('click', () => {
+            team.countries.splice(countryIndex, 1);
+            renderTeams();
+          });
+
+          const showBtn = document.createElement('button');
+          showBtn.textContent = '>';
+          showBtn.addEventListener('click', () => {
+            liObjects.style.display = (liObjects.style.display === 'none' || liObjects.style.display === '') ? 'flex' : 'none';
+          });
+          
+          li.appendChild(flagContainer);
+          li.appendChild(label);
+          li.appendChild(showBtn);
+          li.appendChild(removeBtn);
+          li.appendChild(liObjects);
+          list.appendChild(li);
         });
-      });
-      // Przycisk usunięcia kraju z drużyny
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '❌';
-      removeBtn.addEventListener('click', () => {
-        team.countries.splice(countryIndex, 1);
-        renderTeams();
-      });
+        
+        teamDiv.appendChild(list);
+        teamsContainer.appendChild(teamDiv);
 
-      const showBtn = document.createElement('button');
-      showBtn.textContent = '>';
-      showBtn.addEventListener('click', () => {
-        liObjects.style.display = (liObjects.style.display === 'none' || liObjects.style.display === '') ? 'flex' : 'none';
-      });
-      
-      li.appendChild(flagContainer);
-      li.appendChild(label);
-      li.appendChild(showBtn);
-      li.appendChild(removeBtn);
-      li.appendChild(liObjects);
-      list.appendChild(li);
-    });
-    
-    teamDiv.appendChild(list);
     
     // ---------------------------------------------
     // Panel dodawania kraju z użyciem listy rozwijanej
