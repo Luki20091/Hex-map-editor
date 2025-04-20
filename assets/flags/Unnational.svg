@@ -23,8 +23,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="0.52591065"
-     inkscape:cx="326.10102"
-     inkscape:cy="280.46589"
+     inkscape:cx="327.05175"
+     inkscape:cy="278.56443"
      inkscape:window-width="1920"
      inkscape:window-height="991"
      inkscape:window-x="-9"
@@ -35,5 +35,5 @@
      fill="#dc143c"
      d="M 0,0 H 8 V 5 H 0 Z"
      id="path1"
-     style="display:inline;fill:#ffffff" />
+     style="display:inline;fill:#000000" />
 </svg>

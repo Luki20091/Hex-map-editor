@@ -82,6 +82,8 @@
         <button id="aiGenerateButton" title="Generate Map with AI"><i class="fas fa-robot"></i> AI Generate</button>
       </div>
     </div>
+    <div id="objectList">
+    </div>
   </div>
 
   <!-- Right Sidebar: Tile Palette (Colors and Objects) -->
@@ -214,6 +216,10 @@
       { id: 6, name: "Cavalry" }
     ];
 
+
+    const blockedForObjects = ['Water','Ocean','High Mountains','Snowy Mountains','Volcanic  Mountains'];
+
+
     let selectedTerrainId = 1;
     let selectedObjectId = 1;
     let selectedNationId = 1;
@@ -245,6 +251,13 @@
     let superChunkCache = new Map();
     let mapDirty = true;
     let dirtyChunks = new Set();
+
+
+
+
+
+
+
 
     /* ---------------------------------------------------------------------------
      * Funkcje setCursor i setTool – Ustawiają kursor oraz aktualne narzędzie
@@ -509,15 +522,6 @@
           case "village":
             contrast = 0.8;
             break;
-          case "infantry":
-            contrast = 0.7;
-            break;
-          case "ranged":
-            contrast = 0.7;
-            break;
-          case "cavalry":
-            contrast = 0.7;
-            break;
           default:
             contrast = 0.7;
         }
@@ -526,29 +530,25 @@
         const objImg = getImage(objPath);
         const natImg = getImage(natPath);
 
-        // jeśli któryś nie załadowany — od razu wrzucamy loadImage, a compositu nie rysujemy
         if (!objImg || !natImg) {
-          loadImage(objPath, loadedObj => {
-            cacheImage(objPath, loadedObj);
-          });
-          loadImage(natPath, loadedNat => {
-            cacheImage(natPath, loadedNat);
-          });
+          loadImage(objPath, loadedObj =>  cacheImage(objPath, loadedObj));
+          loadImage(natPath, loadedNat =>  cacheImage(natPath, loadedNat));
           return;
         }
 
-        // klucz do compositu
-        const key  = `${obj.name}::${nat.name}`;
-        const size = hexRadius*1.9;
-        // wygeneruj composit tylko raz
+        // 3) wylicz parametry compositu
+        const size = hexRadius * 1.9;
+        const key  = `${obj.name}::${nat.name}::300`;
         const comp = ensureComposite(objImg, natImg, key, 300);
 
-        // i teraz tylko drawImage z gotowego bitmapowego canvasu
-        ctx.save();                            // zapamiętaj stan
-        ctx.filter = `contrast(${contrast})`;        
-        ctx.drawImage(comp, screenX - size/2, screenY - size/2, size, size);
-        ctx.restore(); 
-
+        // 5) rysuj już gotowy composit na ekranie
+        ctx.save();
+        ctx.filter = `contrast(${contrast})`;
+        ctx.drawImage(comp,
+                      screenX - size/2,
+                      screenY - size/2,
+                      size, size);
+        ctx.restore();
       });
     }
 
@@ -648,7 +648,7 @@
     }
     function isBlockedForObjects(cell) {
       const terrain = cellDefinitions[cell.id];
-      return ['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(terrain.name);
+      return blockedForObjects.includes(terrain.name);
     }
 
     /* ---------------------------------------------------------------------------
@@ -701,7 +701,7 @@
             const current = queue.pop();
             if (current.id === targetId) {
               current.id = selectedTerrainId;
-              if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
+              if (blockedForObjects.includes(cellDefinitions[selectedTerrainId].name) && current.objectId) {
                 current.objectId = 0;
                 current.nationId = 0;
               }
@@ -718,7 +718,7 @@
           drawMap();
         } else if (selectedTool === 'pencil') {
           if (cell.id === selectedTerrainId) return;
-          if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
+          if (blockedForObjects.includes(cellDefinitions[selectedTerrainId].name) && cell.objectId) {
             cell.objectId = 0;
             cell.nationId = 0;
           }
@@ -738,7 +738,7 @@
             if (Math.random() < p) {
               if (c.id !== selectedTerrainId) {
                 c.id = selectedTerrainId;
-                if (['Water','Ocean','Mountains','High Mountains','Snowy Mountains','Volcanic  Mountains'].includes(cellDefinitions[selectedTerrainId].name) && c.objectId) {
+                if (blockedForObjects.includes(cellDefinitions[selectedTerrainId].name) && c.objectId) {
                   c.objectId = 0;
                   c.nationId = 0;
                 }
@@ -817,66 +817,51 @@
       });
     });
     function highlightCell(cell) {
-      if (!cell) return;
-      if (isBlockedForObjects(cell)) return;
+      if (!cell || isBlockedForObjects(cell)) return;
       if (!selectedObjectId || !selectedNationId) return;
 
-      const obj  = objectDefinitions[selectedObjectId - 1];
-      const nat  = nationDefinitions[selectedNationId - 1];
+      const obj = objectDefinitions[selectedObjectId - 1];
+      const nat = nationDefinitions[selectedNationId - 1];
       if (!obj || !nat) return;
 
-      // 1) Oblicz pozycję na ekranie
+      // 1) pozycja na ekranie
       const pos     = evenr_to_pixel(cell);
       const screenX = pos.x + canvas.width  / 2 + offsetX;
       const screenY = pos.y + canvas.height / 2 + offsetY;
 
-      // 2) Ścieżki do plików SVG
+      // 2) ścieżki do SVG
       const objPath = `assets/objects/${obj.name.toLowerCase()}.svg`;
       const natPath = `assets/flags/${nat.name}.svg`;
 
-      // 3) Pobrać obie bitmapy z cache albo asynchronicznie
+      // 3) pobierz z cache lub undefined
       const objImg = getImage(objPath);
       const natImg = getImage(natPath);
 
-      // Jeśli nie ma w cache, załaduj je i po załadowaniu przerysuj
+      // 4) jeśli cokolwiek niezaładowane → load + exit
       if (!objImg || !natImg) {
-        // załaduj obiekt
-        loadImage(objPath, loadedObj => {
-          // załaduj flagę
-          loadImage(natPath, loadedNat => {
-            // po załadowaniu obu, zapisz w cache i wywołaj ponownie
-            window.cacheImage(objPath,  loadedObj);
-            window.cacheImage(natPath,  loadedNat);
-          });
-        });
+        loadImage(objPath, loadedObj =>  cacheImage(objPath, loadedObj));
+        loadImage(natPath, loadedNat =>  cacheImage(natPath, loadedNat));
         return;
       }
 
-      // 4) Off-screen canvas do maskowania
-      const size = hexRadius*1.9;
-      const off = document.createElement('canvas');
-      off.width  = size;
-      off.height = size;
-      const offCtx = off.getContext('2d');
+      // 5) budowa/​pobranie compositu
+      const size = hexRadius * 1.9;
+      const key  = `${obj.name}::${nat.name}::300`;
+      const comp = ensureComposite(objImg, natImg, key, 300);
 
-      // 5) Narysuj kształt obiektu jako maskę (white silhouette)
-      offCtx.clearRect(0, 0, size, size);
-      offCtx.drawImage(objImg, 0, 0, size, size);
-
-      // 6) Ustaw compositing: zachowaj tylko obszar, który pokrywa się z kształtem
-      offCtx.globalCompositeOperation = 'source-in';
-
-      // 7) Narysuj flagę w tym obszarze
-      offCtx.drawImage(natImg, 0, 0, size, size);
-
-      // 8) Przywróć domyślny compositing
-      offCtx.globalCompositeOperation = 'source-over';
-
-      // 9) Nałóż całość na główny context (z połprzezroczystością)
+      // 6) rysowanie z przezroczystością i filtrem
       ctx.save();
-      ctx.globalAlpha = 0.5;
-      ctx.filter = 'contrast(0.0)';        
-      ctx.drawImage(off, screenX - size/2, screenY - size/2, size, size);
+      ctx.globalAlpha = 0.4;
+      ctx.filter      = 'contrast(1)';  // lub inna wartość, jeśli chcesz
+      ctx.imageSmoothingEnabled = true;
+      // rysujemy DPR-sized canvas w CSS-wymiarach:
+      ctx.drawImage(
+        comp,
+        screenX - size/2,
+        screenY - size/2,
+        size,
+        size
+      );
       ctx.restore();
     }
 
@@ -939,33 +924,42 @@
     const reuseCanvas = document.createElement('canvas');
     const reuseCtx    = reuseCanvas.getContext('2d');
 
-    // Funkcja do wygenerowania compositu raz na dany obj+flag
-    function ensureComposite(objImg, natImg, key, size) {
+    function ensureComposite(objImg, flagImg, key, size) {
       if (compositeCache[key]) return compositeCache[key];
 
-      // ustawiamy reuseCanvas o odpowiednim rozmiarze
-      reuseCanvas.width  = size;
-      reuseCanvas.height = size;
-      reuseCtx.clearRect(0, 0, size, size);
+      const dpr = window.devicePixelRatio || 1;
+      const w   = Math.ceil(size * dpr);
+      const h   = w;
+
+      // ustaw canvas w pixelach urządzenia
+      reuseCanvas.width  = w;
+      reuseCanvas.height = h;
+      // reset transform i czyszczenie
+      reuseCtx.setTransform(1,0,0,1,0,0);
+      reuseCtx.clearRect(0, 0, w, h);
+
+      // rysujemy w CSS-pixelach, ale na DPR-powiększonym ctx
+      reuseCtx.scale(dpr, dpr);
+      reuseCtx.imageSmoothingEnabled = true;
 
       // 1) maska obiektu
       reuseCtx.drawImage(objImg, 0, 0, size, size);
-      // 2) compositing
+      // 2) compositing: tylko obszar maski
       reuseCtx.globalCompositeOperation = 'source-in';
-      reuseCtx.drawImage(natImg, 0, 0, size, size);
-      // 3) przywracamy
+      reuseCtx.drawImage(flagImg, 0, 0, size, size);
+      // 3) przywrócenie
       reuseCtx.globalCompositeOperation = 'source-over';
 
-      // kopiujemy do osobnego canvasu (żeby reuseCtx.clearRect nie skasowało tego)
+      // kopiujemy do finalnego canvasu (też DPR-sized)
       const finalCanvas = document.createElement('canvas');
-      finalCanvas.width  = size;
-      finalCanvas.height = size;
-      finalCanvas.getContext('2d').drawImage(reuseCanvas, 0, 0);
+      finalCanvas.width  = w;
+      finalCanvas.height = h;
+      finalCanvas.getContext('2d')
+                  .drawImage(reuseCanvas, 0, 0);
 
       compositeCache[key] = finalCanvas;
       return finalCanvas;
     }
-
 
     
     function loadImage(imagePath, callback) {
@@ -1128,6 +1122,9 @@
     canvas.addEventListener('mousedown', (event) => {
       if (event.button === 0 && selectedTool === 'move') {
         isMousePanning = true;
+        //gap = false;
+        //mapDirty = true;
+        //drawMap();
         setCursor('move2');
       }
     });
@@ -1443,181 +1440,184 @@
 
     const teamsContainer = document.getElementById('teamList');
 
+    const defaultNation = nationDefinitions.find(n => n.name.toLowerCase() === 'unnational');
 
-    // ---------------------------------------------
-    // Funkcja wyświetlająca listę krajów (kafelki)
-    // ---------------------------------------------
-
-    // ---------------------------------------------
-    // Funkcja wyświetlająca drużyny oraz panel dodawania krajów
-    // ---------------------------------------------
-    // 1) oznacz renderTeams jako async
-    async function renderTeams() {
-      teamsContainer.innerHTML = '';
-      
-      teams.forEach((team, teamIndex) => {
-        const teamDiv = document.createElement('div');
-        teamDiv.classList.add('team');
-        teamDiv.innerHTML = `<h3>Drużyna ${teamIndex + 1}</h3>`;
-        
-        // Lista krajów w drużynie
-        const list = document.createElement('ul');
-        list.classList.add('team-list');
-        list.dataset.teamIndex = teamIndex;
-        
-        // Wyświetlamy kraje w drużynie
-        team.countries.forEach((nation, countryIndex) => {
-          const li = document.createElement('li');
-          li.dataset.nationId = nation.id;
-
-          const flagContainer = document.createElement('div');
-          flagContainer.classList.add('tile-flag');
-          const flagImage = document.createElement('img');
-          const flagPath = `assets/flags/${nation.name}.svg`;
-          flagImage.src = flagPath;
-          flagImage.alt = `${nation.name} flag`;
-          flagContainer.appendChild(flagImage);
-          const label = document.createElement('span');
-          label.textContent = nation.name;
-
-          
-          const liObjects = document.createElement('li');
-          liObjects.classList.add('objects');
-          liObjects.style.display = "none";
-
-          // 2) oznacz callback jako async, żeby można było użyć await
-          objectDefinitions.forEach(async (object, index) => {
-            const iconContainer = document.createElement('div');
-            iconContainer.dataset.objectId = object.id;
-            iconContainer.classList.add('tile-flag');
-            const iconImage = document.createElement('img');
-
-            const objPath = `assets/objects/${object.name.toLowerCase()}.svg`;
-            const natPath = `assets/flags/${nation.name}.svg`;
-            
-            
-            // Jeśli nie ma w cache, załaduj je i po załadowaniu przerysuj
-            let objImg = getImage(objPath);
-            let natImg = getImage(natPath);
-
-            // jeśli brakuje, poczekaj na załadowanie
-            if (!objImg || !natImg) {
-              [objImg, natImg] = await Promise.all([
-                objImg ? Promise.resolve(objImg) : loadImage(objPath),
-                natImg ? Promise.resolve(natImg) : loadImage(natPath),
-              ]);
-            }
-
-            // zrób composit i wrzuć do <img>
-            const size = 40; // rozmiar ikonek w px
-            const off = ensureComposite(
-              objImg, natImg,
-              `${object.name}::${nation.name}`,
-              size,
-              0.9           // tu kontrast
-            );
-            iconImage.src = off.toDataURL();
-            iconImage.alt = `${object.name} icon`;
-            iconContainer.appendChild(iconImage);
-            const label = document.createElement('span');
-            label.textContent = object.name;
-            liObjects.appendChild(iconContainer);
-
-            iconContainer.addEventListener('click', () => {
-              selectedNationId = parseInt(li.dataset.nationId);
-              selectedObjectId = parseInt(iconContainer.dataset.objectId);
-              document.querySelectorAll('#nationList .tile').forEach(t => t.classList.remove('selected'));
-              iconContainer.classList.add('selected');
-            });
-          });
-          // Przycisk usunięcia kraju z drużyny
-          const removeBtn = document.createElement('button');
-          removeBtn.textContent = '❌';
-          removeBtn.addEventListener('click', () => {
-            team.countries.splice(countryIndex, 1);
-            renderTeams();
-          });
-
-          const showBtn = document.createElement('button');
-          showBtn.textContent = '>';
-          showBtn.addEventListener('click', () => {
-            liObjects.style.display = (liObjects.style.display === 'none' || liObjects.style.display === '') ? 'flex' : 'none';
-          });
-          
-          li.appendChild(flagContainer);
-          li.appendChild(label);
-          li.appendChild(showBtn);
-          li.appendChild(removeBtn);
-          li.appendChild(liObjects);
-          list.appendChild(li);
-        });
-        
-        teamDiv.appendChild(list);
-        teamsContainer.appendChild(teamDiv);
-
-    
-    // ---------------------------------------------
-    // Panel dodawania kraju z użyciem listy rozwijanej
-    // ---------------------------------------------
-    const addCountryContainer = document.createElement('div');
-    addCountryContainer.classList.add('add-country-container');
-    
-    const countrySelect = document.createElement('select');
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = '-- Wybierz kraj --';
-    countrySelect.appendChild(defaultOption);
-    
-    nationDefinitions.forEach(nation => {
-      const option = document.createElement('option');
-      option.value = nation.id;
-      option.textContent = nation.name;
-      // Jeżeli kraj już jest w drużynie, opcja zostanie wyłączona
-      if (team.countries.some(n => n.id === nation.id)) {
-        option.disabled = true;
+  // Pomocniczna funkcja do renderowania obiektów w #objectList
+  async function renderObjectsForNation(nation) {
+    const container = document.getElementById('objectList');
+    container.innerHTML = '';
+    objectDefinitions.sort((a, b) => a.id - b.id);
+    for (const obj of objectDefinitions) {
+      let imgObj = getImage(`assets/objects/${obj.name.toLowerCase()}.svg`);
+      let imgNat = getImage(`assets/flags/${nation.name}.svg`);
+      if (!imgObj || !imgNat) {
+        [imgObj, imgNat] = await Promise.all([
+          imgObj ? Promise.resolve(imgObj) : loadImage(`assets/objects/${obj.name.toLowerCase()}.svg`),
+          imgNat ? Promise.resolve(imgNat) : loadImage(`assets/flags/${nation.name}.svg`)
+        ]);
       }
-      countrySelect.appendChild(option);
-    });
-    
-    const addCountryBtn = document.createElement('button');
-    addCountryBtn.textContent = 'Dodaj kraj';
-    addCountryBtn.addEventListener('click', () => {
-      const selectedValue = countrySelect.value;
-      if (selectedValue && team.countries.length < maxCountriesPerTeam) {
-        const nationToAdd = nationDefinitions.find(n => n.id == selectedValue);
-        if (nationToAdd && !team.countries.some(n => n.id === nationToAdd.id)) {
-          team.countries.push(nationToAdd);
-          renderTeams();
-        }
+      const comp = ensureComposite(imgObj, imgNat, `${obj.name}::${nation.name}`, 40);
+      const tile = document.createElement('div');
+      tile.classList.add('tile-flag');
+      const imgEl = document.createElement('img');
+      imgEl.src = comp.toDataURL();
+      imgEl.alt = `${obj.name} icon`;
+      const span = document.createElement('span');
+      span.textContent = obj.name;
+      tile.appendChild(imgEl);
+      tile.appendChild(span);
+      if (obj.id === selectedObjectId) {
+        tile.classList.add('objectSelected');
       }
-    });
-    
-    addCountryContainer.appendChild(countrySelect);
-    addCountryContainer.appendChild(addCountryBtn);
-    teamDiv.appendChild(addCountryContainer);
-    
-    teamsContainer.appendChild(teamDiv);
-  });
-  
-  // ---------------------------------------------
-  // Przycisk dodawania nowej drużyny (na końcu listy drużyn)
-  // ---------------------------------------------
-  if (teams.length < maxTeams) {
-    const addTeamDiv = document.createElement('div');
-    addTeamDiv.classList.add('add-team-container');
-    const addTeamButton = document.createElement('button');
-    addTeamButton.textContent = 'Dodaj Drużynę';
-    addTeamButton.addEventListener('click', () => {
-      teams.push({ countries: [] });
-      renderTeams();
-    });
-    addTeamDiv.appendChild(addTeamButton);
-    teamsContainer.appendChild(addTeamDiv);
+      tile.addEventListener('click', () => {
+        selectedNationId = nation.id;
+        selectedObjectId = obj.id;
+        renderAll();
+      });
+      container.appendChild(tile);
+    }
   }
+
+
+    async function renderAll() {
+  // Domyślne ustawienia
+  
+
+  // Główny kontener drużyn
+  teamsContainer.innerHTML = '';
+  // Zbiór wybranych krajów
+  const usedIds = new Set();
+  teams.forEach(t => t.countries.forEach(n => usedIds.add(n.id)));
+
+  // Render "unnational" na górze
+  if (defaultNation) {
+    const li = document.createElement('li');
+    li.dataset.nationId = defaultNation.id;
+    li.classList.add('tile-flag');
+    const img = document.createElement('img');
+    img.src = `assets/flags/${defaultNation.name}.svg`;
+    img.alt = `${defaultNation.name} flag`;
+    const span = document.createElement('span');
+    span.textContent = defaultNation.name;
+    li.appendChild(img);
+    li.appendChild(span);
+    li.addEventListener('click', () => {
+      selectedNationId = defaultNation.id;
+      renderAll();
+    });
+    teamsContainer.appendChild(li);
+  }
+
+  // Renderowanie każdej drużyny
+  teams.forEach((team, idx) => {
+    const divTeam = document.createElement('div');
+    divTeam.classList.add('team');
+    const header = document.createElement('h3');
+    header.textContent = `Drużyna ${idx + 1}`;
+    divTeam.appendChild(header);
+    // Przyciski usuń drużynę
+    if (teams.length > 2) {
+      const btnDel = document.createElement('button');
+      btnDel.textContent = '❌';
+      btnDel.addEventListener('click', () => { teams.splice(idx, 1); renderAll(); });
+      divTeam.appendChild(btnDel);
+    }
+    // Lista krajów
+    const ul = document.createElement('ul');
+    ul.classList.add('team-list');
+    team.countries.forEach((nation, nIdx) => {
+      const li = document.createElement('li');
+      li.dataset.nationId = nation.id;
+      li.classList.add('tile-flag');
+      const img = document.createElement('img');
+      img.src = `assets/flags/${nation.name}.svg`;
+      img.alt = `${nation.name} flag`;
+      const span = document.createElement('span');
+      span.textContent = nation.name;
+      li.appendChild(img);
+      li.appendChild(span);
+      if (nation.id === selectedNationId) {
+        li.classList.add('nationSelected');
+      }
+      li.addEventListener('click', () => {
+        selectedNationId = nation.id;
+        renderAll();
+      });
+      // Usuń kraj
+      const btnRm = document.createElement('button');
+      btnRm.textContent = '❌';
+      btnRm.addEventListener('click', () => { team.countries.splice(nIdx, 1); renderAll(); });
+      li.appendChild(btnRm);
+      ul.appendChild(li);
+    });
+    divTeam.appendChild(ul);
+    // Panel dodawania kraju
+    const divAdd = document.createElement('div');
+    divAdd.classList.add('add-country-container');
+    const sel = document.createElement('select');
+    nationDefinitions.forEach(nation => {
+      if (nation.name.toLowerCase() === 'unnational') return;
+      const opt = document.createElement('option');
+      opt.value = nation.id;
+      opt.textContent = nation.name;
+      if (usedIds.has(nation.id)) opt.disabled = true;
+      sel.appendChild(opt);
+    });
+    const first = Array.from(sel.options).findIndex(o => !o.disabled);
+    sel.selectedIndex = first >= 0 ? first : 0;
+    const btnAdd = document.createElement('button');
+    btnAdd.textContent = 'Dodaj kraj';
+    btnAdd.addEventListener('click', () => {
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt.disabled) {
+        const toAdd = nationDefinitions.find(n => n.id === parseInt(opt.value, 10));
+        if (toAdd) {
+          team.countries.push(toAdd);
+          selectedNationId = toAdd.id;
+        }
+        renderAll();
+      }
+    });
+    divAdd.appendChild(sel);
+    divAdd.appendChild(btnAdd);
+    divTeam.appendChild(divAdd);
+
+    teamsContainer.appendChild(divTeam);
+  });
+
+  // Dodaj nową drużynę
+  if (teams.length < maxTeams) {
+    const divNew = document.createElement('div');
+    divNew.classList.add('add-team-container');
+    const btnNew = document.createElement('button');
+    btnNew.textContent = 'Dodaj Drużynę';
+    btnNew.addEventListener('click', () => { teams.push({ countries: [] }); renderAll(); });
+    divNew.appendChild(btnNew);
+    teamsContainer.appendChild(divNew);
+  }
+
+  // Aktualizuj #objectList na podstawie selectedNationId
+  const inAny = teams.some(t => t.countries.some(n => n.id === selectedNationId));
+  const nationToShow = inAny ? nationDefinitions.find(n => n.id === selectedNationId) : defaultNation;
+  if (nationToShow) await renderObjectsForNation(nationToShow);
 }
 
-// Inicjalizacja: najpierw wyświetlamy listę krajów, potem drużyny
-renderTeams();
+
+function initNationSelector() {
+  document.body.addEventListener('click', async (e) => {
+    const li = e.target.closest('li[data-nation-id]');
+    if (!li) return;
+    // pobierz id z data-atrybutu
+    selectedNationId = parseInt(li.dataset.nationId, 10);
+    // odśwież obiekty dla nowego kraju
+    const nationToShow = inAny ? nationDefinitions.find(n => n.id === selectedNationId) : defaultNation;
+    if (nationToShow) await renderObjectsForNation(nationToShow);
+    await renderAll();
+  });
+}
+
+initNationSelector();
+renderAll();
 
 
 
@@ -1928,6 +1928,24 @@ renderTeams();
       a.download = `${mapTitleInput.value || 'map'}_with_coords.png`;
       a.click();
     }
+
+
+
+
+
+
+
+
+
+    function resetCompositeCache() {
+      Object.keys(compositeCache).forEach(key => {
+        delete compositeCache[key];
+      });
+    }
+
+
+
+
 
 
 
