@@ -35,6 +35,14 @@ jobs:
         with:
           source: ./
           destination: ./_site
+      - name: Convert all filenames to lowercase
+        run: |
+          find . -depth | while read fname; do
+            newname=$(dirname "$fname")/$(basename "$fname" | tr '[:upper:]' '[:lower:]')
+            if [ "$fname" != "$newname" ]; then
+              mv "$fname" "$newname"
+            fi
+          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
