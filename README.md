@@ -2,7 +2,17 @@
 [Edit your maps here](https://luki20091.github.io/Hex-map-editor/)  
 
 ## Official maps
-[Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+# For testing
+- [All-Terrains-huge](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/All-Terrains-huge.json)
+
+# Campaign I
+- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+
+# Campaign II
+- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+
+# Campaign III
+- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
 
 ## Changelog  
 
