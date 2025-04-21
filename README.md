@@ -1,5 +1,5 @@
 # History of Balls - Hex Map Editor  
-[>>>>>>>>> Edit your maps here <<<<<<<<<](https://luki20091.github.io/Hex-map-editor/)  
+[>>>>>>>>>>>   Edit your maps here   <<<<<<<<<<<](https://luki20091.github.io/Hex-map-editor/)  
 
 
 ## Official maps
