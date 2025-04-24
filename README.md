@@ -19,11 +19,14 @@
 
 ## Changelog  
 
-### Beta 2.2  
+### Beta 3.0  
 - [ ] Improved overall UI styling (final adjustments pending)  
 - [ ] Added favicon support  
 - [ ] Prevented unintended cursor movement when switching browser tabs  
 
+### Beta 2.2
+- [ ] Flag of England: Bugs fixed
+      
 ### Beta 2.1  
 - [x] Every single object icons as mask
 - [x] Object icons bar
