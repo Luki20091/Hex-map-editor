@@ -25,6 +25,7 @@
 
 ### Beta 2.2
 - [x] Flag of England: Bugs fixed
+- [ ] Max 3 teams, max 3 nations per team
       
 ### Beta 2.1  
 - [x] Every single object icons as mask
@@ -33,7 +34,7 @@
 - [x] Zombie nation
 
 ### Beta 2.0  
-- [x] Team trees UI - max 5 teams, max 5 nations per team
+- [x] Team trees UI working with nations
 - [x] isBlockedForObjects includes added terrains
 - [x] UI tools hover styling
 - [x] Adjusted global scaling (0.7×) for better readability  
