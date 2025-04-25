@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Disable zooming on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hex Map Editor - BETA 2.1</title>
+  <title>Hex Map Editor - BETA 2.2</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" type="text/css" href="assets/styles/desktop.css">
 </head>
@@ -192,8 +192,8 @@
       { id: 4, name: "Germany" },
       { id: 5, name: "Nazi-Germany" },
       { id: 6, name: "England" },
-      { id: 8, name: "Royal-England" },
-      { id: 7, name: "UK" },
+      { id: 7, name: "Royal-England" },
+      { id: 8, name: "UK" },
       { id: 9, name: "France" },
       { id: 10, name: "Gallic" },
       { id: 11, name: "Greece" },
@@ -518,13 +518,13 @@
             contrast = 1;
             break;
           case "industry":
-            contrast = 0.9;
+            contrast = 0.95;
             break;
           case "village":
-            contrast = 0.8;
+            contrast = 0.9;
             break;
           default:
-            contrast = 0.7;
+            contrast = 0.85;
         }
 
         // pobieramy z cache'u bitmapy SVG
@@ -825,9 +825,11 @@
       if (!cell || isBlockedForObjects(cell)) return;
       if (!selectedObjectId || !selectedNationId) return;
 
+
       const obj = objectDefinitions[selectedObjectId - 1];
       const nat = nationDefinitions[selectedNationId - 1];
       if (!obj || !nat) return;
+      //console.log(nat);
 
       // 1) pozycja na ekranie
       const pos     = evenr_to_pixel(cell);
@@ -1615,6 +1617,7 @@ function initNationSelector() {
     // pobierz id z data-atrybutu
     selectedNationId = parseInt(li.dataset.nationId, 10);
     // odśwież obiekty dla nowego kraju
+    const inAny = teams.some(t => t.countries.some(n => n.id === selectedNationId));
     const nationToShow = inAny ? nationDefinitions.find(n => n.id === selectedNationId) : defaultNation;
     if (nationToShow) await renderObjectsForNation(nationToShow);
     await renderAll();
