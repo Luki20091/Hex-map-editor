@@ -24,7 +24,7 @@
 - [ ] Prevented unintended cursor movement when switching browser tabs  
 
 ### Beta 2.2
-- [ ] Flag of England: Bugs fixed
+- [x] Flag of England: Bugs fixed
       
 ### Beta 2.1  
 - [x] Every single object icons as mask
