@@ -8,13 +8,13 @@
 - [All-Terrains-huge](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/All-Terrains-huge.json)
 
 ### Campaign I
-- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+- [Thermopylae](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Thermopylae.json)
 
 ### Campaign II
-- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+- [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
 
 ### Campaign III
-- [Termopile](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Termopile.json)
+- [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
 
 
 ## Changelog  
