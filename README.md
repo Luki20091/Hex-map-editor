@@ -12,7 +12,7 @@
 ### Campaign III
 - [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
 
-### For testing
+### Other
 - [All-Terrains-huge](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/All-Terrains-huge.json)
 - [Chess-Battle](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Chess-Battle.json)
 
