@@ -26,6 +26,7 @@
 ### Beta 2.2
 - [x] Flag of England: Bugs fixed
 - [ ] Max 3 teams, max 3 nations per team
+- [ ] Rotate map for 180deg
       
 ### Beta 2.1  
 - [x] Every single object icons as mask
