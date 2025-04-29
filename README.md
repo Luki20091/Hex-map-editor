@@ -7,7 +7,7 @@
 - [Thermopylae](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Thermopylae.json)
 
 ### Campaign II
-- [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
+- [Westerplatte](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Westerplatte.json)
 
 ### Campaign III
 - [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
