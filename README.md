@@ -10,7 +10,7 @@
 - [Westerplatte](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Westerplatte.json)
 
 ### Campaign III
-- [Soon](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/)
+- [Great-Wall-of-China](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/Great-Wall-of-China.json)
 
 ### Other
 - [All-Terrains-huge](https://github.com/Luki20091/Hex-map-editor/blob/main/maps/All-Terrains-huge.json)
